@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brecha — Monitor de Valor Polymarket LatAm</title>
+<meta name="theme-color" content="#0B1120">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1120; --panel:#131B2E; --panel-2:#1B2540; --border:#26314D;
+    --text:#E7EAF3; --text-dim:#8B93AB; --gold:#C9A227; --jade:#3FA796;
+    --rose:#C9576B; --amber:#D69A3B;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',sans-serif;line-height:1.5;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:var(--gold);}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
+
+  header{padding:28px 20px 16px;max-width:920px;margin:0 auto;}
+  .marca{display:flex;align-items:baseline;gap:10px;}
+  .marca h1{font-size:1.6rem;font-weight:800;margin:0;letter-spacing:-0.02em;}
+  .marca .beta{font-size:0.7rem;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;border:1px solid var(--border);padding:2px 6px;border-radius:4px;}
+  header p{color:var(--text-dim);margin:6px 0 0;font-size:0.95rem;}
+
+  .ticker{background:var(--panel-2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:10px 20px;text-align:center;font-size:0.82rem;color:var(--text-dim);}
+  .ticker strong{color:var(--amber);}
+
+  main{max-width:920px;margin:0 auto;padding:20px;}
+
+  .tabs{display:flex;gap:4px;margin-bottom:18px;border-bottom:1px solid var(--border);overflow-x:auto;}
+  .tab-btn{background:none;border:none;color:var(--text-dim);font-family:'Manrope',sans-serif;font-weight:600;font-size:0.92rem;padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
+  .tab-btn.activo{color:var(--text);border-bottom:2px solid var(--gold);}
+  .tab-btn .contador{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;background:var(--panel-2);padding:1px 6px;border-radius:8px;margin-left:6px;}
+
+  .tab-panel{display:none;}
+  .tab-panel.activo{display:block;}
+
+  .barra-busqueda{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+  .barra-busqueda input[type=text]{flex:1;min-width:160px;background:var(--panel);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.88rem;}
+  .barra-busqueda select{flex:1;min-width:160px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.88rem;}
+  .barra-busqueda button.buscar{background:var(--gold);border:none;color:#1a1406;font-weight:700;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:0.85rem;}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+  .chip{background:var(--panel);border:1px solid var(--border);color:var(--text-dim);padding:5px 12px;border-radius:14px;font-size:0.78rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;}
+  .chip:hover{border-color:var(--gold);color:var(--text);}
+
+  .estado{color:var(--text-dim);font-size:0.9rem;padding:16px 0;}
+  .estado.error{color:var(--rose);}
+
+  .market-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;}
+  .market-head{margin-bottom:10px;}
+  .market-title{color:var(--text);text-decoration:none;font-weight:600;font-size:0.95rem;display:block;}
+  .market-title:hover{color:var(--gold);}
+  .market-meta{color:var(--text-dim);font-size:0.75rem;margin-top:3px;}
+
+  .outcome-row{display:grid;grid-template-columns:1fr auto 64px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--border);}
+  .outcome-name{font-size:0.85rem;}
+  .outcome-price{font-size:0.85rem;color:var(--gold);text-align:right;min-width:52px;}
+  .input-prob{width:64px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:0.82rem;}
+  .gauge-wrap{grid-column:1/-1;}
+  .gauge-track{position:relative;height:6px;background:var(--panel-2);border-radius:3px;margin-top:8px;}
+  .gauge-market{position:absolute;top:-3px;width:2px;height:12px;background:var(--text-dim);}
+  .gauge-you{position:absolute;top:-3px;width:2px;height:12px;}
+  .gauge-gap{position:absolute;top:0;height:6px;background:rgba(201,162,39,0.18);}
+  .gauge-label{font-size:0.78rem;margin-top:6px;color:var(--text-dim);}
+  .btn-log{grid-column:1/-1;justify-self:start;background:none;border:1px solid var(--border);color:var(--text-dim);padding:5px 12px;border-radius:6px;font-size:0.78rem;cursor:pointer;margin-top:6px;}
+  .btn-log:not(:disabled):hover{border-color:var(--jade);color:var(--jade);}
+  .btn-log:disabled{opacity:0.4;cursor:not-allowed;}
+
+  details{background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;}
+  summary{padding:12px 16px;cursor:pointer;font-weight:600;font-size:0.88rem;}
+  details p, details ul{padding:0 16px 14px;margin:0;color:var(--text-dim);font-size:0.86rem;}
+
+  .banxico-token-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+  .banxico-token-row input{flex:1;min-width:180px;background:var(--panel);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;}
+  .banxico-token-row button{background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:8px;cursor:pointer;font-size:0.85rem;}
+  .dato-banxico{display:flex;justify-content:space-between;padding:10px 14px;background:var(--panel);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:0.85rem;}
+  .dato-nombre{color:var(--text-dim);}
+  .dato-fecha{color:var(--text-dim);font-size:0.75rem;}
+
+  table{width:100%;border-collapse:collapse;font-size:0.82rem;}
+  th{text-align:left;color:var(--text-dim);font-weight:600;padding:8px;border-bottom:1px solid var(--border);}
+  td{padding:8px;border-bottom:1px solid var(--border);}
+  .btn-eliminar{background:none;border:none;color:var(--rose);cursor:pointer;font-size:0.9rem;}
+  .acciones-bitacora{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .acciones-bitacora button, .acciones-bitacora label{background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:8px;cursor:pointer;font-size:0.85rem;}
+  .acciones-bitacora input[type=file]{display:none;}
+
+  footer{max-width:920px;margin:0 auto;padding:20px;color:var(--text-dim);font-size:0.78rem;border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="marca">
+    <h1>Brecha</h1>
+    <span class="beta">v1 · monitor manual</span>
+  </div>
+  <p>Compara el precio de Polymarket contra tu propia estimación. Tú decides el número; la app solo calcula la diferencia.</p>
+</header>
+
+<div class="ticker">⚠ Esto es una herramienta de análisis. <strong>Ningún modelo garantiza ganancias</strong> — valida con tu bitácora antes de arriesgar dinero real.</div>
+
+<main>
+
+  <details>
+    <summary>¿Cómo se usa esto? (léelo primero)</summary>
+    <ul>
+      <li><strong>Precio de mercado</strong> = lo que Polymarket ya piensa (en %). Es la opinión colectiva de todos los que están apostando ahí.</li>
+      <li><strong>Tu probabilidad</strong> = tu propio estimado, basado en lo que tú investigues (dato de INEGI/Banxico, calendario de partidos, noticias, etc.). Tú lo escribes a mano — la app no lo inventa.</li>
+      <li><strong>Brecha</strong> = tu número menos el del mercado. Una brecha grande NO significa que vayas a ganar — puede significar que el mercado sabe algo que tú no, o que tú sabes algo que el mercado aún no valora. Por eso existe la Bitácora.</li>
+      <li><strong>Bitácora</strong> = vas guardando cada comparación con fecha. Después de 100-300 registros, revisas cuántas veces tu estimado terminó más cerca de la realidad que el precio de mercado. Esa es la única forma honesta de saber si tienes ventaja real.</li>
+    </ul>
+  </details>
+
+  <div class="tabs">
+    <button class="tab-btn activo" data-tab="inflacion" onclick="cambiarTab('inflacion')">Inflación México</button>
+    <button class="tab-btn" data-tab="ligamx" onclick="cambiarTab('ligamx')">Liga MX</button>
+    <button class="tab-btn" data-tab="bitacora" onclick="cambiarTab('bitacora')">Bitácora <span class="contador mono" id="contador-bitacora">0</span></button>
+  </div>
+
+  <!-- INFLACIÓN -->
+  <section class="tab-panel activo" id="panel-inflacion">
+    <details>
+      <summary>Dato oficial de referencia (Banxico)</summary>
+      <div style="padding:0 16px 16px;">
+        <p style="margin-top:0;">Opcional. Con un token gratuito de Banxico ves el último dato oficial de inflación y tasa, para comparar contra lo que el mercado está prediciendo.</p>
+        <div class="banxico-token-row">
+          <input type="text" id="banxico-token" placeholder="Pega tu token de Banxico aquí">
+          <button onclick="consultarBanxico()">Consultar</button>
+        </div>
+        <div id="banxico-resultado"></div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>Nowcast: nuestra estimación estadística (México)</summary>
+      <div style="padding:0 16px 16px;">
+        <p style="margin-top:0;">Proyecta la próxima inflación anual usando el índice INPC oficial (usa el mismo token de Banxico de arriba). Modelo simple de "efecto base" — transparente, sin caja negra: ves cada número que entra al cálculo.</p>
+        <label class="mono" style="font-size:0.8rem;color:var(--text-dim);display:block;margin-bottom:8px;">Desviación asumida (±puntos %, qué tan segura es la estimación): <input type="number" id="sigma-mexico" value="0.20" step="0.05" min="0.05" style="width:64px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 6px;"></label>
+        <button onclick="calcularNowcastInflacion()">Calcular nowcast México</button>
+        <div id="nowcast-resultado" style="margin-top:12px;"></div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Nowcast: Estados Unidos (FRED) — para llenar bitácora rápido</summary>
+      <div style="padding:0 16px 16px;">
+        <p style="margin-top:0;">Mismo modelo de "efecto base", aplicado al CPI de EE.UU. (serie CPIAUCSL). Recuerda: esto es más útil para <strong>validar rápido si el método funciona</strong> — es el mercado más líquido y vigilado, así que como lugar para apostar de verdad es el más difícil de vencer.</p>
+        <div class="banxico-token-row">
+          <input type="text" id="fred-token" placeholder="Pega tu API key gratuita de FRED aquí">
+          <button onclick="calcularNowcastEEUU()">Calcular nowcast EE.UU.</button>
+        </div>
+        <label class="mono" style="font-size:0.8rem;color:var(--text-dim);display:block;margin:8px 0;">Desviación asumida (±puntos %): <input type="number" id="sigma-eeuu" value="0.20" step="0.05" min="0.05" style="width:64px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 6px;"></label>
+        <p class="estado" style="margin:8px 0 0;">¿No tienes API key? Es gratis e inmediata en <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" rel="noopener">fred.stlouisfed.org</a> (solo pide registrarte).</p>
+        <div id="nowcast-eeuu-resultado" style="margin-top:12px;"></div>
+      </div>
+    </details>
+
+    <div class="barra-busqueda">
+      <input type="text" id="input-kw-inflacion" value="inflation" class="mono">
+      <button class="buscar" onclick="buscarMercadosPolymarket(document.getElementById('input-kw-inflacion').value, 'inflacion-resultados', 'Inflación')">Buscar</button>
+    </div>
+    <div class="chips" id="chips-inflacion">
+      <button class="chip" data-kw="mexico inflation">mexico inflation</button>
+      <button class="chip" data-kw="us inflation">us inflation</button>
+      <button class="chip" data-kw="cpi">cpi</button>
+      <button class="chip" data-kw="core cpi">core cpi</button>
+      <button class="chip" data-kw="banxico">banxico</button>
+      <button class="chip" data-kw="fed rate">fed rate</button>
+    </div>
+    <div id="inflacion-resultados"><p class="estado">Cargando mercados…</p></div>
+  </section>
+
+  <!-- LIGA MX -->
+  <section class="tab-panel" id="panel-ligamx">
+    <details>
+      <summary>Cómo funciona el modelo (Elo + Poisson)</summary>
+      <div style="padding:0 16px 16px;">
+        <p style="margin-top:0;">Elige tus dos equipos abajo. La app descarga los resultados históricos de Liga MX (temporada actual + anterior) y calcula dos cosas por separado:</p>
+        <ul style="margin:0 0 10px;padding-left:18px;">
+          <li><strong>Elo:</strong> cada equipo empieza en 1500 puntos; sube o baja según a quién le gana, considerando ventaja de local (+60 pts). Es un indicador de "forma" — no da probabilidad directa.</li>
+          <li><strong>Poisson de goles:</strong> con el promedio de goles anotados/recibidos de cada equipo (como local y como visita), calcula cuántos goles se esperan en el partido, y de ahí la probabilidad de victoria local, empate o visita.</li>
+        </ul>
+        <p style="margin:0;">Es un modelo simple y de una sola fuente — no incluye lesiones, clima ni calendario de competencias. La evidencia dice que esto por sí solo <strong>no le gana a una casa de apuestas profesional</strong>; el valor está en compararlo contra el precio de Polymarket, no en tratarlo como verdad. <strong>Nota:</strong> equipos recién ascendidos o reincorporados (ej. Atlante en el Apertura 2026) todavía no tienen suficiente historial en primera división — el modelo te avisa cuando eso pasa, en vez de darte un número poco confiable.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>¿De dónde salen los datos históricos?</summary>
+      <div style="padding:0 16px 16px;">
+        <p style="margin-top:0;">De la API pública de ESPN (la misma que usa espn.com) — gratis y sin necesidad de una llave. Por eso la primera carga tarda unos segundos: descarga varios meses de partidos en varias partes.</p>
+        <p style="margin:0;"><strong>Aviso honesto:</strong> esta API no es un producto oficial de ESPN ni tiene garantía de soporte — podría cambiar o dejar de funcionar sin aviso algún día. Si eso pasa, dímelo y buscamos otra fuente.</p>
+      </div>
+    </details>
+
+    <div class="market-card" style="margin-bottom:16px;">
+      <p style="margin:0 0 10px;font-weight:600;">Calcula tu partido</p>
+      <div class="barra-busqueda" style="margin-bottom:10px;">
+        <select id="select-local" class="mono"></select>
+        <select id="select-visita" class="mono"></select>
+      </div>
+      <button class="buscar" onclick="calcularPartidoSeleccionado()">Calcular partido</button>
+      <div id="partido-resultado" style="margin-top:12px;"></div>
+    </div>
+
+    <div id="ligamx-resultados"><p class="estado">Elige dos equipos arriba y dale "Calcular partido" para ver el mercado de Polymarket correspondiente.</p></div>
+  </section>
+
+  <!-- BITÁCORA -->
+  <section class="tab-panel" id="panel-bitacora">
+    <details>
+      <summary>¿Para qué sirve la Bitácora?</summary>
+      <p style="margin-top:0;">Guarda cada comparación aquí. Antes de cerrar la página, dale "Exportar CSV" — la próxima vez, usa "Importar CSV" para seguir donde ibas. (La app no guarda nada en tu navegador automáticamente, así que el CSV es tu respaldo.)</p>
+    </details>
+    <div class="acciones-bitacora">
+      <button onclick="exportarCSV()">Exportar CSV</button>
+      <label for="importar-csv">Importar CSV</label>
+      <input type="file" id="importar-csv" accept=".csv" onchange="importarCSV(this.files[0])">
+    </div>
+    <p class="estado" id="bitacora-vacio">Todavía no has guardado ninguna comparación. Ve a Inflación o Liga MX, escribe tu probabilidad en un mercado y dale "+ Bitácora".</p>
+    <table id="tabla-bitacora" style="display:none;">
+      <thead>
+        <tr><th>Fecha</th><th>Categoría</th><th>Mercado</th><th>Resultado</th><th>Precio mercado</th><th>Tu prob.</th><th>Brecha</th><th></th></tr>
+      </thead>
+      <tbody id="bitacora-body"></tbody>
+    </table>
+  </section>
+
+</main>
+
+<footer>
+  Brecha v1 — herramienta de monitoreo personal, sin conexión con Polymarket ni Banxico más allá de leer datos públicos. No es asesoría financiera. Construido para uso propio.
+</footer>
+
+<script>
+// ---------- Utilidades ----------
+function parseMaybeJSON(val){
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string'){
+    try { return JSON.parse(val); } catch(e){ return []; }
+  }
+  return [];
+}
+
+function pct(n){ return (n*100).toFixed(1) + '%'; }
+
+// ---------- Convertir un nowcast (un solo número) en probabilidad por cubeta ----------
+// Método: tratamos el nowcast como el centro de una campana (distribución normal).
+// "sigma" es qué tan segura es esa campana — más chico = más plana, más ancho = más picuda.
+// Esto SÍ es una suposición transparente (no un dato medido) hasta que tu bitácora
+// te diga qué tan seguido se equivoca tu nowcast; ese día cambias el sigma por el real.
+function erf(x){
+  const signo = x < 0 ? -1 : 1;
+  x = Math.abs(x);
+  const a1=0.254829592, a2=-0.284496736, a3=1.421413741, a4=-1.453152027, a5=1.061405429, p=0.3275911;
+  const t = 1/(1+p*x);
+  const y = 1 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  return signo*y;
+}
+function normCDF(x, mu, sigma){
+  if (!sigma) return x >= mu ? 1 : 0;
+  return 0.5 * (1 + erf((x-mu)/(sigma*Math.sqrt(2))));
+}
+
+// Lee el texto de una cubeta de Polymarket ("≤3.1%", "3.4%", "≥4.2%") y extrae el número y el tipo.
+function parsearUmbral(texto){
+  const t = String(texto).trim();
+  const m = t.match(/(-?\d+(\.\d+)?)/);
+  if (!m) return null;
+  const num = parseFloat(m[1]);
+  if (isNaN(num)) return null;
+  let tipo = 'exacto';
+  if (/(≤|<=|or less|or lower|or below|less than|under)/i.test(t)) tipo = 'menorigual';
+  else if (/(≥|>=|or more|or higher|or above|greater than|over|above)/i.test(t)) tipo = 'mayorigual';
+  return { num, tipo };
+}
+
+// Probabilidad de que el nowcast (mu, sigma) caiga dentro de esa cubeta específica.
+function probabilidadBucket(umbral, mu, sigma){
+  if (!umbral || mu === null || mu === undefined) return null;
+  const paso = 0.05; // medio ancho del "escalón" típico (0.1 pts) de estos mercados
+  if (umbral.tipo === 'menorigual') return normCDF(umbral.num, mu, sigma);
+  if (umbral.tipo === 'mayorigual') return 1 - normCDF(umbral.num, mu, sigma);
+  return normCDF(umbral.num + paso, mu, sigma) - normCDF(umbral.num - paso, mu, sigma);
+}
+
+let nowcastMexico = null; // { valor, sigma }
+let nowcastEEUU = null;
+
+function clasificarBrecha(brecha){
+  const abs = Math.abs(brecha);
+  if (abs < 10) return { color:'var(--text-dim)', favorable:null };
+  return { color: brecha > 0 ? 'var(--jade)' : 'var(--rose)', favorable: brecha > 0 };
+}
+
+// ---------- Pestañas ----------
+function cambiarTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('activo', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('activo', p.id === 'panel-' + tab));
+}
+
+// ---------- Polymarket ----------
+// Filtro de seguridad: si una búsqueda amplia llegara a incluir un mercado que no tiene
+// nada que ver con Liga MX o inflación (ej. geopolítica), lo bloqueamos aquí antes de mostrarlo.
+const TEMAS_BLOQUEADOS = ['iran','israel','gaza','ukrain','russia',' war ','guerra','trump','biden','president','election','congress','shutdown'];
+function pasaFiltroSeguridad(preguntaNorm){
+  return !TEMAS_BLOQUEADOS.some(t => preguntaNorm.includes(t));
+}
+
+async function buscarMercadosPolymarket(keyword, contenedorId, categoria, opciones){
+  const cont = document.getElementById(contenedorId);
+  const kw = (keyword || '').trim();
+  if (!(opciones && opciones.filtro) && kw.length < 3){
+    cont.innerHTML = '<p class="estado">Escribe al menos 3 letras para buscar.</p>';
+    return;
+  }
+  cont.innerHTML = '<p class="estado">Buscando mercados…</p>';
+  try{
+    const url = 'https://gamma-api.polymarket.com/markets?limit=300&active=true&closed=false&order=volume24hr&ascending=false';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    let filtrados;
+    if (opciones && opciones.filtro){
+      filtrados = data.filter(m => {
+        const preguntaNorm = normalizarTexto(m.question || '');
+        return opciones.filtro(preguntaNorm) && pasaFiltroSeguridad(preguntaNorm);
+      });
+    } else {
+      // Coincidencia por TODAS las palabras del término de búsqueda (no solo una),
+      // para no mezclar mercados de temas completamente distintos.
+      const tokens = normalizarTexto(kw).split(/\s+/).filter(Boolean);
+      filtrados = data.filter(m => {
+        const preguntaNorm = normalizarTexto(m.question || '');
+        return tokens.every(t => preguntaNorm.includes(t)) && pasaFiltroSeguridad(preguntaNorm);
+      });
+    }
+    if (filtrados.length === 0){
+      cont.innerHTML = '<p class="estado">No se encontraron mercados activos' + (kw ? ' para "' + keyword + '"' : '') + '. Es posible que Polymarket todavía no tenga mercado para esto — no es un error tuyo, prueba de nuevo más cerca de la fecha.</p>';
+      return;
+    }
+    cont.innerHTML = '';
+    filtrados.slice(0, 25).forEach(m => cont.appendChild(crearTarjetaMercado(m, categoria)));
+  } catch(err){
+    cont.innerHTML = '<p class="estado error">No se pudo conectar con Polymarket (' + err.message + '). Intenta de nuevo en un momento.</p>';
+  }
+}
+
+function crearTarjetaMercado(m, categoria){
+  const outcomes = parseMaybeJSON(m.outcomes);
+  const precios = parseMaybeJSON(m.outcomePrices).map(p => parseFloat(p));
+  const card = document.createElement('div');
+  card.className = 'market-card';
+
+  const vol = m.volume24hr ? Number(m.volume24hr).toLocaleString('es-MX', {maximumFractionDigits:0}) : '—';
+  const fin = m.endDate ? new Date(m.endDate).toLocaleDateString('es-MX', {day:'numeric', month:'short', year:'numeric'}) : '—';
+  const link = m.slug ? ('https://polymarket.com/event/' + m.slug) : ('https://polymarket.com/search?_q=' + encodeURIComponent(m.question || ''));
+
+  let lineaModelo = '';
+  let equiposDetectados = [];
+  let estimacionPartido = null;
+  let nowcastAplicable = null;
+  if (categoria === 'Liga MX' && statsLigaMX){
+    equiposDetectados = detectarEquipos(m.question || '');
+    if (equiposDetectados.length >= 2){
+      estimacionPartido = estimarPartido(equiposDetectados[0], equiposDetectados[1]);
+      if (estimacionPartido){
+        lineaModelo = '<div class="market-meta mono" style="color:var(--gold);">Modelo: ' + equiposDetectados[0] + ' ' + (estimacionPartido.pLocal*100).toFixed(0) + '% · Empate ' + (estimacionPartido.pEmpate*100).toFixed(0) + '% · ' + equiposDetectados[1] + ' ' + (estimacionPartido.pVisita*100).toFixed(0) + '% &nbsp;(xG ' + estimacionPartido.xgLocal.toFixed(2) + ' – ' + estimacionPartido.xgVisita.toFixed(2) + ')</div>';
+      }
+    }
+  }
+  if (categoria === 'Inflación'){
+    const esMexico = normalizarTexto(m.question || '').includes('mexico');
+    nowcastAplicable = esMexico ? nowcastMexico : nowcastEEUU;
+    if (nowcastAplicable){
+      lineaModelo = '<div class="market-meta mono" style="color:var(--gold);">Nowcast aplicado (' + (esMexico?'México':'EE.UU.') + '): ' + nowcastAplicable.valor.toFixed(2) + '% &nbsp;±' + nowcastAplicable.sigma.toFixed(2) + ' asumido</div>';
+    }
+  }
+
+  card.innerHTML =
+    '<div class="market-head">' +
+      '<a href="' + link + '" target="_blank" rel="noopener" class="market-title">' + (m.question || 'Mercado sin título') + '</a>' +
+      '<div class="market-meta mono">Vol 24h: $' + vol + ' · Cierra: ' + fin + '</div>' +
+      lineaModelo +
+    '</div>' +
+    '<div class="outcomes"></div>';
+
+  const outcomesWrap = card.querySelector('.outcomes');
+  outcomes.forEach((o, i) => {
+    const precioMercado = (precios[i] !== undefined && !isNaN(precios[i])) ? precios[i] : null;
+    const row = document.createElement('div');
+    row.className = 'outcome-row';
+    row.innerHTML =
+      '<div class="outcome-name">' + o + '</div>' +
+      '<div class="outcome-price mono">' + (precioMercado !== null ? pct(precioMercado) : '—') + '</div>' +
+      '<input type="number" min="0" max="100" step="1" placeholder="tu %" class="input-prob mono">' +
+      '<div class="gauge-wrap">' +
+        '<div class="gauge-track">' +
+          '<div class="gauge-market" style="left:' + (precioMercado !== null ? (precioMercado*100) : 0) + '%"></div>' +
+          '<div class="gauge-you" style="left:0%; display:none;"></div>' +
+          '<div class="gauge-gap" style="display:none;"></div>' +
+        '</div>' +
+        '<div class="gauge-label mono"></div>' +
+      '</div>' +
+      '<button class="btn-log" disabled>+ Bitácora</button>';
+
+    const input = row.querySelector('.input-prob');
+    const gaugeYou = row.querySelector('.gauge-you');
+    const gaugeGap = row.querySelector('.gauge-gap');
+    const gaugeLabel = row.querySelector('.gauge-label');
+    const btnLog = row.querySelector('.btn-log');
+
+    input.addEventListener('input', () => {
+      const val = parseFloat(input.value);
+      if (isNaN(val) || precioMercado === null){
+        gaugeYou.style.display = 'none';
+        gaugeGap.style.display = 'none';
+        gaugeLabel.textContent = '';
+        btnLog.disabled = true;
+        return;
+      }
+      const brecha = val - (precioMercado * 100);
+      const clase = clasificarBrecha(brecha);
+      gaugeYou.style.display = 'block';
+      gaugeYou.style.left = Math.max(0, Math.min(100,val)) + '%';
+      gaugeYou.style.background = clase.color;
+      const izq = Math.max(0, Math.min(val, precioMercado*100));
+      const der = Math.min(100, Math.max(val, precioMercado*100));
+      gaugeGap.style.display = 'block';
+      gaugeGap.style.left = izq + '%';
+      gaugeGap.style.width = Math.max(0,(der-izq)) + '%';
+      let mensaje;
+      if (clase.favorable === null){
+        mensaje = 'Sin ventaja clara aquí';
+      } else if (clase.favorable){
+        mensaje = 'Señal: considera comprar <strong>"' + o + '"</strong> en Polymarket';
+      } else {
+        mensaje = 'El modelo no favorece "' + o + '" — revisa la otra opción de este mismo mercado';
+      }
+      gaugeLabel.innerHTML = 'Brecha: <span style="color:' + clase.color + '">' + (brecha>0?'+':'') + brecha.toFixed(1) + ' pts</span><br><span style="color:' + clase.color + ';font-weight:700;">' + mensaje + '</span>';
+      btnLog.disabled = false;
+      btnLog.onclick = () => agregarBitacora({
+        fecha: new Date().toISOString(),
+        categoria: categoria,
+        mercado: m.question,
+        resultado: o,
+        precioMercado: (precioMercado*100).toFixed(1),
+        tuProbabilidad: val.toFixed(1),
+        brecha: brecha.toFixed(1)
+      });
+    });
+
+    outcomesWrap.appendChild(row);
+
+    // Si el modelo (Liga MX) tiene una probabilidad para este resultado específico,
+    // se rellena solo — no necesitas escribir nada a mano. Puedes editarlo si no
+    // estás de acuerdo con el modelo.
+    if (estimacionPartido){
+      const probModelo = mapearProbabilidadModelo(o, equiposDetectados, estimacionPartido);
+      if (probModelo !== null && precioMercado !== null){
+        input.value = (probModelo*100).toFixed(1);
+        input.placeholder = 'auto (modelo)';
+        input.style.borderColor = 'var(--gold)';
+        input.dispatchEvent(new Event('input'));
+      }
+    }
+    if (nowcastAplicable){
+      const umbral = parsearUmbral(o);
+      const probNowcast = probabilidadBucket(umbral, nowcastAplicable.valor, nowcastAplicable.sigma);
+      if (probNowcast !== null && precioMercado !== null){
+        input.value = (probNowcast*100).toFixed(1);
+        input.placeholder = 'auto (nowcast)';
+        input.style.borderColor = 'var(--gold)';
+        input.dispatchEvent(new Event('input'));
+      }
+    }
+  });
+
+  return card;
+}
+
+// ---------- Banxico ----------
+async function consultarBanxico(){
+  const token = document.getElementById('banxico-token').value.trim();
+  const cont = document.getElementById('banxico-resultado');
+  if (!token){
+    cont.innerHTML = '<p class="estado">Pega tu token gratuito de Banxico. <a href="https://www.banxico.org.mx/SieAPIRest/service/v1/token" target="_blank" rel="noopener">Consíguelo aquí gratis</a>.</p>';
+    return;
+  }
+  cont.innerHTML = '<p class="estado">Consultando Banxico…</p>';
+  const series = {
+    'SP30577': 'Inflación mensual (INPC)',
+    'SP30578': 'Inflación anual (INPC)',
+    'SP30579': 'Inflación acumulada (INPC)',
+    'SF60634': 'Tasa objetivo Banxico'
+  };
+  const ids = Object.keys(series).join(',');
+  try{
+    const res = await fetch('https://www.banxico.org.mx/SieAPIRest/service/v1/series/' + ids + '/datos/oportuno?token=' + encodeURIComponent(token), {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const lista = data.bmx.series.map(s => {
+      const nombre = series[s.idSerie] || s.titulo || s.idSerie;
+      const dato = (s.datos && s.datos[0]) ? s.datos[0] : null;
+      return '<div class="dato-banxico"><span class="dato-nombre">' + nombre + '</span><span class="dato-valor mono">' + (dato ? dato.dato + '%' : '—') + '</span><span class="dato-fecha mono">' + (dato ? dato.fecha : '') + '</span></div>';
+    }).join('');
+    cont.innerHTML = lista;
+  } catch(err){
+    cont.innerHTML = '<p class="estado error">No se pudo consultar Banxico (' + err.message + '). Revisa tu token o intenta de nuevo.</p>';
+  }
+}
+
+// ---------- Nowcast de inflación (modelo de "efecto base") ----------
+// Idea: la inflación anual de M meses = variación acumulada del índice en 12 meses.
+// Para proyectar el próximo dato SIN esperar a que se publique, tomamos:
+//   1) la inflación anual ya conocida (yoyActual)
+//   2) le sumamos la tendencia mensual reciente (promedio de los últimos 3 meses)
+//   3) le restamos la variación mensual que "sale" de la ventana de 12 meses
+//      (el mismo mes, hace un año) — esto es lo que en México se conoce como "efecto base".
+// Es un modelo simple y transparente, no una caja negra: cada número se muestra en pantalla.
+async function calcularNowcastInflacion(){
+  const cont = document.getElementById('nowcast-resultado');
+  const token = document.getElementById('banxico-token').value.trim();
+  if (!token){
+    cont.innerHTML = '<p class="estado">Necesitas tu token de Banxico (ponlo arriba, en "Dato oficial de referencia") para calcular el nowcast.</p>';
+    return;
+  }
+  cont.innerHTML = '<p class="estado">Consultando historial del INPC…</p>';
+  try{
+    const hoy = new Date();
+    const inicio = new Date(hoy.getFullYear(), hoy.getMonth() - 16, 1);
+    const fmt = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    // SP1 = INPC general, índice mensual. Si esta serie no es la correcta, el error se explica abajo.
+    const url = 'https://www.banxico.org.mx/SieAPIRest/service/v1/series/SP1/datos/' + fmt(inicio) + '/' + fmt(hoy) + '?token=' + encodeURIComponent(token);
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const serie = data.bmx.series[0].datos
+      .map(d => ({ fecha: d.fecha, valor: parseFloat(String(d.dato).replace(',','')) }))
+      .filter(d => !isNaN(d.valor));
+    const n = serie.length;
+    if (n < 14){
+      cont.innerHTML = '<p class="estado error">No hay suficiente historial todavía (' + n + ' meses, se necesitan al menos 14). Intenta de nuevo en unos días o revisa el rango de fechas.</p>';
+      return;
+    }
+    const ultimo = serie[n-1];
+    const haceUnAno = serie[n-13];
+    const yoyActual = (ultimo.valor / haceUnAno.valor - 1) * 100;
+
+    let sumaMom = 0;
+    for (let i = n-3; i < n; i++){ sumaMom += (serie[i].valor / serie[i-1].valor - 1) * 100; }
+    const promedioMomReciente = sumaMom / 3;
+
+    const momQueSale = (serie[n-12].valor / serie[n-13].valor - 1) * 100;
+    const nowcast = yoyActual + (promedioMomReciente - momQueSale);
+    const sigma = parseFloat(document.getElementById('sigma-mexico').value) || 0.20;
+    nowcastMexico = { valor: nowcast, sigma: sigma };
+
+    cont.innerHTML =
+      '<div class="dato-banxico"><span class="dato-nombre">Inflación anual actual (' + ultimo.fecha + ')</span><span class="dato-valor mono">' + yoyActual.toFixed(2) + '%</span></div>' +
+      '<div class="dato-banxico"><span class="dato-nombre">Variación mensual promedio (últimos 3 meses)</span><span class="dato-valor mono">' + promedioMomReciente.toFixed(2) + '%</span></div>' +
+      '<div class="dato-banxico"><span class="dato-nombre">Variación mensual que sale de la ventana (efecto base)</span><span class="dato-valor mono">' + momQueSale.toFixed(2) + '%</span></div>' +
+      '<div class="dato-banxico" style="border-color:var(--gold);"><span class="dato-nombre" style="color:var(--gold);font-weight:700;">Nowcast: próxima inflación anual estimada</span><span class="dato-valor mono" style="color:var(--gold);font-weight:700;">' + nowcast.toFixed(2) + '%</span></div>' +
+      '<p class="estado" style="margin-top:10px;">Fórmula: inflación anual actual + (promedio mensual reciente − variación que sale de la ventana). Con este nowcast como centro y ±' + sigma.toFixed(2) + ' pts de margen asumido, ya se calculó la probabilidad de cada cubeta de abajo — no necesitas escribir nada, aunque puedes editarlo si no estás de acuerdo.</p>';
+    buscarMercadosPolymarket(document.getElementById('input-kw-inflacion').value, 'inflacion-resultados', 'Inflación');
+  } catch(err){
+    cont.innerHTML = '<p class="estado error">No se pudo calcular el nowcast (' + err.message + '). Si persiste, es posible que el ID de serie del INPC (SP1) no sea el correcto para tu token — dímelo y lo verificamos juntos.</p>';
+  }
+}
+
+// ---------- Nowcast de inflación EE.UU. (FRED, mismo modelo de "efecto base") ----------
+async function calcularNowcastEEUU(){
+  const cont = document.getElementById('nowcast-eeuu-resultado');
+  const token = document.getElementById('fred-token').value.trim();
+  if (!token){
+    cont.innerHTML = '<p class="estado">Necesitas tu API key gratuita de FRED (campo de arriba) para calcular este nowcast.</p>';
+    return;
+  }
+  cont.innerHTML = '<p class="estado">Consultando historial del CPI (FRED)…</p>';
+  try{
+    const hoy = new Date();
+    const inicio = new Date(hoy.getFullYear(), hoy.getMonth() - 17, 1);
+    const fmt = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    const url = 'https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&api_key=' + encodeURIComponent(token) +
+                '&file_type=json&observation_start=' + fmt(inicio) + '&sort_order=asc';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const serie = (data.observations || [])
+      .map(d => ({ fecha: d.date, valor: parseFloat(d.value) }))
+      .filter(d => !isNaN(d.valor));
+    const n = serie.length;
+    if (n < 14){
+      cont.innerHTML = '<p class="estado error">Solo hay ' + n + ' meses de historial (se necesitan al menos 14). Revisa el rango o intenta de nuevo.</p>';
+      return;
+    }
+    const ultimo = serie[n-1];
+    const haceUnAno = serie[n-13];
+    const yoyActual = (ultimo.valor / haceUnAno.valor - 1) * 100;
+
+    let sumaMom = 0;
+    for (let i = n-3; i < n; i++){ sumaMom += (serie[i].valor / serie[i-1].valor - 1) * 100; }
+    const promedioMomReciente = sumaMom / 3;
+
+    const momQueSale = (serie[n-12].valor / serie[n-13].valor - 1) * 100;
+    const nowcast = yoyActual + (promedioMomReciente - momQueSale);
+    const sigma = parseFloat(document.getElementById('sigma-eeuu').value) || 0.20;
+    nowcastEEUU = { valor: nowcast, sigma: sigma };
+
+    cont.innerHTML =
+      '<div class="dato-banxico"><span class="dato-nombre">Inflación anual actual EE.UU. (' + ultimo.fecha + ')</span><span class="dato-valor mono">' + yoyActual.toFixed(2) + '%</span></div>' +
+      '<div class="dato-banxico"><span class="dato-nombre">Variación mensual promedio (últimos 3 meses)</span><span class="dato-valor mono">' + promedioMomReciente.toFixed(2) + '%</span></div>' +
+      '<div class="dato-banxico"><span class="dato-nombre">Variación mensual que sale de la ventana (efecto base)</span><span class="dato-valor mono">' + momQueSale.toFixed(2) + '%</span></div>' +
+      '<div class="dato-banxico" style="border-color:var(--gold);"><span class="dato-nombre" style="color:var(--gold);font-weight:700;">Nowcast: próxima inflación anual EE.UU. estimada</span><span class="dato-valor mono" style="color:var(--gold);font-weight:700;">' + nowcast.toFixed(2) + '%</span></div>' +
+      '<p class="estado" style="margin-top:10px;">Con este nowcast como centro y ±' + sigma.toFixed(2) + ' pts asumidos, ya se calculó la probabilidad de cada cubeta de abajo. Recuerda: aquí es más difícil que haya una brecha real — sirve para tu bitácora de validación, no necesariamente para apostar ya.</p>';
+    buscarMercadosPolymarket(document.getElementById('input-kw-inflacion').value, 'inflacion-resultados', 'Inflación');
+  } catch(err){
+    cont.innerHTML = '<p class="estado error">No se pudo calcular el nowcast EE.UU. (' + err.message + '). Si persiste, puede ser un bloqueo CORS de FRED — avísame y armamos un proxy de Netlify Functions para este caso.</p>';
+  }
+}
+
+// ---------- Liga MX: Elo + Poisson ----------
+const EQUIPOS_LIGA_MX = [
+  { label:'América', alias:['America','Club America'] },
+  { label:'Atlante', alias:['Atlante'] },
+  { label:'Atlas', alias:['Atlas'] },
+  { label:'Atlético San Luis', alias:['Atletico San Luis','San Luis'] },
+  { label:'Chivas', alias:['Chivas','Guadalajara'] },
+  { label:'Cruz Azul', alias:['Cruz Azul'] },
+  { label:'Juárez', alias:['Juarez','FC Juarez'] },
+  { label:'León', alias:['Leon'] },
+  { label:'Monterrey', alias:['Monterrey','Rayados'] },
+  { label:'Necaxa', alias:['Necaxa'] },
+  { label:'Pachuca', alias:['Pachuca'] },
+  { label:'Puebla', alias:['Puebla'] },
+  { label:'Pumas', alias:['Pumas','UNAM'] },
+  { label:'Querétaro', alias:['Queretaro'] },
+  { label:'Santos Laguna', alias:['Santos Laguna','Santos'] },
+  { label:'Tigres', alias:['Tigres','UANL'] },
+  { label:'Tijuana', alias:['Tijuana','Xolos'] },
+  { label:'Toluca', alias:['Toluca'] }
+];
+
+let statsLigaMX = null;
+
+function normalizarTexto(s){
+  return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
+function poblarSelectsLigaMX(){
+  const opciones = EQUIPOS_LIGA_MX.map(e => '<option value="' + e.label + '">' + e.label + '</option>').join('');
+  document.getElementById('select-local').innerHTML = '<option value="">Equipo local...</option>' + opciones;
+  document.getElementById('select-visita').innerHTML = '<option value="">Equipo visitante...</option>' + opciones;
+}
+
+function detectarEquipos(pregunta){
+  const texto = normalizarTexto(pregunta);
+  const encontrados = [];
+  EQUIPOS_LIGA_MX.forEach(eq => {
+    let mejorPos = -1;
+    eq.alias.forEach(a => {
+      const pos = texto.indexOf(normalizarTexto(a));
+      if (pos !== -1 && (mejorPos === -1 || pos < mejorPos)) mejorPos = pos;
+    });
+    if (mejorPos !== -1) encontrados.push({ label: eq.label, pos: mejorPos });
+  });
+  encontrados.sort((a,b) => a.pos - b.pos);
+  const vistos = new Set();
+  const unicos = [];
+  encontrados.forEach(x => { if(!vistos.has(x.label)){ vistos.add(x.label); unicos.push(x.label); } });
+  return unicos;
+}
+
+function resolverClaveEquipo(nombre, diccionario){
+  if (diccionario[nombre] !== undefined) return nombre;
+  const eq = EQUIPOS_LIGA_MX.find(e => e.label === nombre);
+  const candidatos = eq ? eq.alias.concat([eq.label]) : [nombre];
+  const norms = candidatos.map(normalizarTexto);
+  const claves = Object.keys(diccionario);
+  const encontrada = claves.find(k => {
+    const kn = normalizarTexto(k);
+    return norms.some(n => kn.includes(n) || n.includes(kn));
+  });
+  return encontrada || null;
+}
+
+function equipoCoincideConTexto(label, texto){
+  const eq = EQUIPOS_LIGA_MX.find(e => e.label === label);
+  const candidatos = eq ? eq.alias.concat([eq.label]) : [label];
+  const norm = normalizarTexto(texto);
+  return candidatos.some(a => norm.includes(normalizarTexto(a)));
+}
+
+function factorial(n){ return n <= 1 ? 1 : n * factorial(n-1); }
+function poissonProb(k, lambda){ return Math.exp(-lambda) * Math.pow(lambda, k) / factorial(k); }
+
+function estimarPartido(local, visita){
+  if (!statsLigaMX) return null;
+  const claveLocal = resolverClaveEquipo(local, statsLigaMX.fuerza);
+  const claveVisita = resolverClaveEquipo(visita, statsLigaMX.fuerza);
+  if (!claveLocal || !claveVisita) return null;
+  const fl = statsLigaMX.fuerza[claveLocal], fv = statsLigaMX.fuerza[claveVisita];
+  const xgLocal = statsLigaMX.promLocal * fl.ataqueLocal * fv.defensaVisita;
+  const xgVisita = statsLigaMX.promVisita * fv.ataqueVisita * fl.defensaLocal;
+  let pLocal=0, pEmpate=0, pVisita=0;
+  for (let i=0;i<=8;i++){
+    for (let j=0;j<=8;j++){
+      const p = poissonProb(i,xgLocal) * poissonProb(j,xgVisita);
+      if (i>j) pLocal += p; else if (i===j) pEmpate += p; else pVisita += p;
+    }
+  }
+  return { pLocal, pEmpate, pVisita, xgLocal, xgVisita, eloLocal: statsLigaMX.elo[claveLocal]||1500, eloVisita: statsLigaMX.elo[claveVisita]||1500 };
+}
+
+// Traduce el nombre de un resultado de Polymarket ("América", "Draw", "Yes"...) a la
+// probabilidad que calculó el modelo para ese resultado específico.
+function mapearProbabilidadModelo(outcomeLabel, equipos, est){
+  if (!est || equipos.length < 2) return null;
+  const texto = normalizarTexto(outcomeLabel);
+  if (texto.includes('draw') || texto.includes('empat') || texto.includes('tie')) return est.pEmpate;
+  if (equipoCoincideConTexto(equipos[0], outcomeLabel)) return est.pLocal;
+  if (equipoCoincideConTexto(equipos[1], outcomeLabel)) return est.pVisita;
+  if (texto === 'yes' || texto === 'si' || texto === 'sí') return est.pLocal;
+  if (texto === 'no') return 1 - est.pLocal;
+  return null;
+}
+
+async function cargarHistorialLigaMXSiFalta(cont){
+  if (statsLigaMX) return true;
+  cont.innerHTML = '<p class="estado">Descargando historial de partidos (primera vez puede tardar hasta un minuto, los datos de ESPN pesan bastante)...</p>';
+  try{
+    // Fuente: API publica de ESPN (sin llave). Se pide en tramos de ~30 dias desde
+    // julio del año pasado hasta hoy (cubre la temporada actual + la anterior),
+    // porque tramos muy anchos pueden no venir completos en una sola llamada.
+    const fmtESPN = d => d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+    const hoy = new Date();
+    const inicio = new Date(hoy.getFullYear() - 1, 6, 1);
+    const eventosPorId = new Map();
+    let cursor = new Date(inicio);
+    let tramo = 1;
+    const totalTramos = Math.ceil((hoy - inicio) / (30*24*60*60*1000)) + 1;
+    while (cursor <= hoy){
+      const fin = new Date(cursor);
+      fin.setDate(fin.getDate() + 29);
+      const finReal = fin > hoy ? hoy : fin;
+      cont.innerHTML = '<p class="estado">Descargando historial de partidos... (' + tramo + ' de ' + totalTramos + ')</p>';
+      const url = 'https://site.api.espn.com/apis/site/v2/sports/soccer/mex.1/scoreboard?dates=' + fmtESPN(cursor) + '-' + fmtESPN(finReal);
+      try{
+        const res = await fetch(url);
+        if (res.ok){
+          const data = await res.json();
+          (data.events || []).forEach(ev => eventosPorId.set(ev.id, ev));
+        }
+      } catch(e){ /* si un tramo falla, seguimos con los demas */ }
+      cursor = new Date(finReal);
+      cursor.setDate(cursor.getDate() + 1);
+      tramo++;
+    }
+
+    const jugados = Array.from(eventosPorId.values())
+      .map(ev => {
+        const comp = ev.competitions && ev.competitions[0];
+        if (!comp || !comp.status || !comp.status.type || !comp.status.type.completed) return null;
+        const home = (comp.competitors || []).find(c => c.homeAway === 'home');
+        const away = (comp.competitors || []).find(c => c.homeAway === 'away');
+        if (!home || !away || !home.team || !away.team) return null;
+        const golesLocal = parseInt(home.score);
+        const golesVisita = parseInt(away.score);
+        if (isNaN(golesLocal) || isNaN(golesVisita)) return null;
+        return { fecha: ev.date, local: home.team.displayName, visita: away.team.displayName, golesLocal, golesVisita };
+      })
+      .filter(Boolean)
+      .sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
+
+    if (jugados.length < 20){
+      cont.innerHTML = '<p class="estado error">Solo encontre ' + jugados.length + ' partidos con marcador en total, muy pocos para confiar en el modelo todavia. Intenta de nuevo mas adelante en la temporada.</p>';
+      return false;
+    }
+
+    const K = 20, VENTAJA_LOCAL = 60;
+    const elo = {};
+    const getElo = (eq) => elo[eq] !== undefined ? elo[eq] : 1500;
+    jugados.forEach(p => {
+      const eloLocal = getElo(p.local), eloVisita = getElo(p.visita);
+      const esperadoLocal = 1 / (1 + Math.pow(10, -(eloLocal + VENTAJA_LOCAL - eloVisita)/400));
+      let resultadoLocal;
+      if (p.golesLocal > p.golesVisita) resultadoLocal = 1;
+      else if (p.golesLocal < p.golesVisita) resultadoLocal = 0;
+      else resultadoLocal = 0.5;
+      elo[p.local] = eloLocal + K * (resultadoLocal - esperadoLocal);
+      elo[p.visita] = eloVisita + K * ((1-resultadoLocal) - (1-esperadoLocal));
+    });
+
+    const acum = {};
+    const ensure = (eq) => { if (!acum[eq]) acum[eq] = {glLocal:0, pjLocal:0, gcLocal:0, glVisita:0, pjVisita:0, gcVisita:0}; return acum[eq]; };
+    let totalGolesLocal = 0, totalGolesVisita = 0;
+    jugados.forEach(p => {
+      const l = ensure(p.local), v = ensure(p.visita);
+      l.glLocal += p.golesLocal; l.gcLocal += p.golesVisita; l.pjLocal++;
+      v.glVisita += p.golesVisita; v.gcVisita += p.golesLocal; v.pjVisita++;
+      totalGolesLocal += p.golesLocal; totalGolesVisita += p.golesVisita;
+    });
+    const promLocal = totalGolesLocal / jugados.length;
+    const promVisita = totalGolesVisita / jugados.length;
+
+    const fuerza = {};
+    Object.keys(acum).forEach(eq => {
+      const a = acum[eq];
+      fuerza[eq] = {
+        ataqueLocal: a.pjLocal ? (a.glLocal / a.pjLocal) / promLocal : 1,
+        defensaLocal: a.pjLocal ? (a.gcLocal / a.pjLocal) / promVisita : 1,
+        ataqueVisita: a.pjVisita ? (a.glVisita / a.pjVisita) / promVisita : 1,
+        defensaVisita: a.pjVisita ? (a.gcVisita / a.pjVisita) / promLocal : 1
+      };
+    });
+
+    statsLigaMX = { elo, fuerza, promLocal, promVisita, muestra: jugados.length };
+    return true;
+  } catch(err){
+    cont.innerHTML = '<p class="estado error">No se pudo descargar el historial (' + err.message + '). Intenta de nuevo en un momento.</p>';
+    return false;
+  }
+}
+
+async function calcularPartidoSeleccionado(){
+  const cont = document.getElementById('partido-resultado');
+  const local = document.getElementById('select-local').value;
+  const visita = document.getElementById('select-visita').value;
+  if (!local || !visita){
+    cont.innerHTML = '<p class="estado error">Elige los dos equipos (local y visitante).</p>';
+    return;
+  }
+  if (local === visita){
+    cont.innerHTML = '<p class="estado error">Elige dos equipos distintos.</p>';
+    return;
+  }
+  const listo = await cargarHistorialLigaMXSiFalta(cont);
+  if (!listo) return;
+  const est = estimarPartido(local, visita);
+  if (!est){
+    cont.innerHTML = '<p class="estado error">No tengo suficiente historial de "' + local + '" o "' + visita + '" en Liga MX todavia (por ejemplo, un equipo recien ascendido o reincorporado, como Atlante este Apertura 2026). El modelo no puede calcular este partido con confianza, no lo uses para decidir todavia.</p>';
+    return;
+  }
+  cont.innerHTML =
+    '<div class="market-card">' +
+      '<div class="market-meta mono">Elo: ' + local + ' ' + Math.round(est.eloLocal) + ' &nbsp;|&nbsp; ' + visita + ' ' + Math.round(est.eloVisita) + '</div>' +
+      '<div class="market-meta mono" style="margin-bottom:10px;">xG esperado: ' + local + ' ' + est.xgLocal.toFixed(2) + ' &nbsp;|&nbsp; ' + visita + ' ' + est.xgVisita.toFixed(2) + '</div>' +
+      '<div class="outcome-row" style="border-top:none;"><div class="outcome-name" style="font-weight:700;">P(' + local + ' gana)</div><div class="outcome-price mono" style="font-size:1.05rem;">' + pct(est.pLocal) + '</div></div>' +
+      '<div class="outcome-row"><div class="outcome-name" style="font-weight:700;">P(Empate)</div><div class="outcome-price mono" style="font-size:1.05rem;">' + pct(est.pEmpate) + '</div></div>' +
+      '<div class="outcome-row"><div class="outcome-name" style="font-weight:700;">P(' + visita + ' gana)</div><div class="outcome-price mono" style="font-size:1.05rem;">' + pct(est.pVisita) + '</div></div>' +
+    '</div>' +
+    '<p class="estado">Compara estos numeros contra el mercado abajo, si la diferencia es de 10 puntos o mas, es una senal (segun tu manual de Brecha).</p>';
+
+  buscarMercadoPartidoEspecifico(local, visita);
+}
+
+function buscarMercadoPartidoEspecifico(local, visita){
+  const eqLocal = EQUIPOS_LIGA_MX.find(e => e.label === local);
+  const eqVisita = EQUIPOS_LIGA_MX.find(e => e.label === visita);
+  const aliasesLocal = (eqLocal ? eqLocal.alias.concat([eqLocal.label]) : [local]).map(normalizarTexto);
+  const aliasesVisita = (eqVisita ? eqVisita.alias.concat([eqVisita.label]) : [visita]).map(normalizarTexto);
+  buscarMercadosPolymarket(local + ' vs ' + visita, 'ligamx-resultados', 'Liga MX', {
+    filtro: (preguntaNorm) => aliasesLocal.some(a => preguntaNorm.includes(a)) && aliasesVisita.some(a => preguntaNorm.includes(a))
+  });
+}
+
+// ---------- Bitácora ----------
+let bitacora = [];
+
+function agregarBitacora(entry){
+  bitacora.push(entry);
+  renderBitacora();
+}
+
+function renderBitacora(){
+  const tbody = document.getElementById('bitacora-body');
+  const vacio = document.getElementById('bitacora-vacio');
+  const tabla = document.getElementById('tabla-bitacora');
+  document.getElementById('contador-bitacora').textContent = bitacora.length;
+  if (bitacora.length === 0){
+    tbody.innerHTML = '';
+    vacio.style.display = 'block';
+    tabla.style.display = 'none';
+    return;
+  }
+  vacio.style.display = 'none';
+  tabla.style.display = 'table';
+  tbody.innerHTML = bitacora.map((e, i) =>
+    '<tr>' +
+      '<td class="mono">' + new Date(e.fecha).toLocaleString('es-MX') + '</td>' +
+      '<td>' + e.categoria + '</td>' +
+      '<td>' + e.mercado + '</td>' +
+      '<td>' + e.resultado + '</td>' +
+      '<td class="mono">' + e.precioMercado + '%</td>' +
+      '<td class="mono">' + e.tuProbabilidad + '%</td>' +
+      '<td class="mono">' + e.brecha + '</td>' +
+      '<td><button class="btn-eliminar" onclick="eliminarBitacora(' + i + ')">✕</button></td>' +
+    '</tr>'
+  ).join('');
+}
+
+function eliminarBitacora(i){
+  bitacora.splice(i, 1);
+  renderBitacora();
+}
+
+function exportarCSV(){
+  if (bitacora.length === 0){ alert('Tu bitácora está vacía.'); return; }
+  const headers = ['fecha','categoria','mercado','resultado','precioMercado','tuProbabilidad','brecha'];
+  const rows = bitacora.map(e => headers.map(h => '"' + String(e[h]).replace(/"/g,'""') + '"').join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'brecha-bitacora-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importarCSV(file){
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    const lines = text.split('\n').filter(l => l.trim());
+    const headers = lines[0].split(',').map(h => h.replace(/"/g,''));
+    const nuevas = lines.slice(1).map(line => {
+      const vals = (line.match(/(".*?"|[^,]+)/g) || []).map(v => v.replace(/^"|"$/g,'').replace(/""/g,'"'));
+      const obj = {};
+      headers.forEach((h,i) => obj[h] = vals[i]);
+      return obj;
+    });
+    bitacora = bitacora.concat(nuevas);
+    renderBitacora();
+  };
+  reader.readAsText(file);
+}
+
+// ---------- Chips ----------
+document.querySelectorAll('#chips-inflacion .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.getElementById('input-kw-inflacion').value = chip.dataset.kw;
+    buscarMercadosPolymarket(chip.dataset.kw, 'inflacion-resultados', 'Inflación');
+  });
+});
+// ---------- Inicio ----------
+window.addEventListener('DOMContentLoaded', () => {
+  poblarSelectsLigaMX();
+  buscarMercadosPolymarket('inflation', 'inflacion-resultados', 'Inflación');
+  renderBitacora();
+});
+</script>
+</body>
+</html>
