@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brecha — Monitor de Valor Polymarket LatAm</title>
+<meta name="theme-color" content="#0B1120">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1120; --panel:#131B2E; --panel-2:#1B2540; --border:#26314D;
+    --text:#E7EAF3; --text-dim:#8B93AB; --gold:#C9A227; --jade:#3FA796;
+    --rose:#C9576B; --amber:#D69A3B;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Manrope',sans-serif;line-height:1.5;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:var(--gold);}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
+
+  header{padding:28px 20px 16px;max-width:920px;margin:0 auto;}
+  .marca{display:flex;align-items:baseline;gap:10px;}
+  .marca h1{font-size:1.6rem;font-weight:800;margin:0;letter-spacing:-0.02em;}
+  .marca .beta{font-size:0.7rem;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;border:1px solid var(--border);padding:2px 6px;border-radius:4px;}
+  header p{color:var(--text-dim);margin:6px 0 0;font-size:0.95rem;}
+
+  .ticker{background:var(--panel-2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:10px 20px;text-align:center;font-size:0.82rem;color:var(--text-dim);}
+  .ticker strong{color:var(--amber);}
+
+  main{max-width:920px;margin:0 auto;padding:20px;}
+
+  .tabs{display:flex;gap:4px;margin-bottom:18px;border-bottom:1px solid var(--border);overflow-x:auto;}
+  .tab-btn{background:none;border:none;color:var(--text-dim);font-family:'Manrope',sans-serif;font-weight:600;font-size:0.92rem;padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
+  .tab-btn.activo{color:var(--text);border-bottom:2px solid var(--gold);}
+  .tab-btn .contador{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;background:var(--panel-2);padding:1px 6px;border-radius:8px;margin-left:6px;}
+
+  .tab-panel{display:none;}
+  .tab-panel.activo{display:block;}
+
+  .barra-busqueda{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+  .barra-busqueda input[type=text]{flex:1;min-width:160px;background:var(--panel);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.88rem;}
+  .barra-busqueda select{flex:1;min-width:160px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.88rem;}
+  .barra-busqueda button.buscar{background:var(--gold);border:none;color:#1a1406;font-weight:700;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:0.85rem;}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+  .chip{background:var(--panel);border:1px solid var(--border);color:var(--text-dim);padding:5px 12px;border-radius:14px;font-size:0.78rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;}
+  .chip:hover{border-color:var(--gold);color:var(--text);}
+
+  .estado{color:var(--text-dim);font-size:0.9rem;padding:16px 0;}
+  .estado.error{color:var(--rose);}
+
+  .market-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;}
+  .market-head{margin-bottom:10px;}
+  .market-title{color:var(--text);text-decoration:none;font-weight:600;font-size:0.95rem;display:block;}
+  .market-title:hover{color:var(--gold);}
+  .market-meta{color:var(--text-dim);font-size:0.75rem;margin-top:3px;}
+
+  .outcome-row{display:grid;grid-template-columns:1fr auto 64px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--border);}
+  .outcome-name{font-size:0.85rem;}
+  .outcome-price{font-size:0.85rem;color:var(--gold);text-align:right;min-width:52px;}
+  .input-prob{width:64px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:0.82rem;}
+  .gauge-wrap{grid-column:1/-1;}
+  .gauge-track{position:relative;height:6px;background:var(--panel-2);border-radius:3px;margin-top:8px;}
+  .gauge-market{position:absolute;top:-3px;width:2px;height:12px;background:var(--text-dim);}
+  .gauge-you{position:absolute;top:-3px;width:2px;height:12px;}
+  .gauge-gap{position:absolute;top:0;height:6px;background:rgba(201,162,39,0.18);}
+  .gauge-label{font-size:0.78rem;margin-top:6px;color:var(--text-dim);}
+  .btn-log{grid-column:1/-1;justify-self:start;background:none;border:1px solid var(--border);color:var(--text-dim);padding:5px 12px;border-radius:6px;font-size:0.78rem;cursor:pointer;margin-top:6px;}
+  .btn-log:not(:disabled):hover{border-color:var(--jade);color:var(--jade);}
+  .btn-log:disabled{opacity:0.4;cursor:not-allowed;}
+
+  details{background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;}
+  summary{padding:12px 16px;cursor:pointer;font-weight:600;font-size:0.88rem;}
+  details p, details ul{padding:0 16px 14px;margin:0;color:var(--text-dim);font-size:0.86rem;}
+
+  .banxico-token-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+  .banxico-token-row input{flex:1;min-width:180px;background:var(--panel);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;}
+  .banxico-token-row button{background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:8px;cursor:pointer;font-size:0.85rem;}
+  .dato-banxico{display:flex;justify-content:space-between;padding:10px 14px;background:var(--panel);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:0.85rem;}
+  .dato-nombre{color:var(--text-dim);}
+  .dato-fecha{color:var(--text-dim);font-size:0.75rem;}
+
+  table{width:100%;border-collapse:collapse;font-size:0.82rem;}
+  th{text-align:left;color:var(--text-dim);font-weight:600;padding:8px;border-bottom:1px solid var(--border);}
+  td{padding:8px;border-bottom:1px solid var(--border);}
+  .btn-eliminar{background:none;border:none;color:var(--rose);cursor:pointer;font-size:0.9rem;}
+  .acciones-bitacora{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .acciones-bitacora button, .acciones-bitacora label{background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:8px;cursor:pointer;font-size:0.85rem;}
+  .acciones-bitacora input[type=file]{display:none;}
+
+  footer{max-width:920px;margin:0 auto;padding:20px;color:var(--text-dim);font-size:0.78rem;border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="marca">
+    <h1>Brecha</h1>
+    <span class="beta">v1 · monitor manual</span>
+  </div>
+  <p>Compara el precio de Polymarket contra tu propia estimación. Tú decides el número; la app solo calcula la diferencia.</p>
+</header>
+
+<div class="ticker">⚠ Esto es una herramienta de análisis. <strong>Ningún modelo garantiza ganancias</strong> — valida con tu bitácora antes de arriesgar dinero real.</div>
+
+<main>
+
+  <details>
+    <summary>¿Cómo se usa esto? (léelo primero)</summary>
+    <ul>
+      <li><strong>Precio de mercado</strong> = lo que Polymarket ya piensa (en %). Es la opinión colectiva de todos los que están apostando ahí.</li>
+      <li><strong>Tu probabilidad</strong> = tu propio estimado, basado en lo que tú investigues (dato de INEGI/Banxico, calendario de partidos, noticias, etc.). Tú lo escribes a mano — la app no lo inventa.</li>
+      <li><strong>Brecha</strong> = tu número menos el del mercado. Una brecha grande NO significa que vayas a ganar — puede significar que el mercado sabe algo que tú no, o que tú sabes algo que el mercado aún no valora. Por eso existe la Bitácora.</li>
+      <li><strong>Bitácora</strong> = vas guardando cada comparación con fecha. Después de 100-300 registros, revisas cuántas veces tu estimado terminó más cerca de la realidad que el precio de mercado. Esa es la única forma honesta de saber si tienes ventaja real.</li>
+    </ul>
+  </details>
+
+  <div class="tabs">
+    <button class="tab-btn activo" data-tab="inflacion" onclick="cambiarTab('inflacion')">Inflación México</button>
+    <button class="tab-btn" data-tab="ligamx" onclick="cambiarTab('ligamx')">Liga MX</button>
+    <button class="tab-btn" data-tab="champions" onclick="cambiarTab('champions')">Champions League</button>
+    <button class="tab-btn" data-tab="premier" onclick="cambiarTab('premier')">Premier League</button>
+    <button class="tab-btn" data-tab="bitacora" onclick="cambiarTab('bitacora')">Bitácora <span class="contador mono" id="contador-bitacora">0</span></button>
+    <button class="tab-btn" data-tab="reglas" onclick="cambiarTab('reglas')">Reglas</button>
+  </div>
+
+  <!-- INFLACIÓN -->
+  <section class="tab-panel activo" id="panel-inflacion">
+    <details>
+      <summary>Dato oficial de referencia (Banxico)</summary>
+      <div style="padding:0 16px 16px;">
+        <p style="margin-top:0;">Opcional. Con un token gratuito de Banxico ves el último dato oficial de inflación y tasa, para comparar contra lo que el mercado está prediciendo.</p>
+        <div class="banxico-token-row">
+          <input type="text" id="banxico-token" placeholder="Pega tu token de Banxico aquí">
+          <button onclick="consultarBanxico()">Consultar</button>
+        </div>
+        <div id="banxico-resultado"></div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>Nowcast: nuestra estimación estadística (México)</summary>
+      <div style="padding:0 16px 16px;">
+        <p style="margin-top:0;">Proyecta la próxima inflación anual usando el índice INPC oficial (usa el mismo token de Banxico de arriba). Modelo simple de "efecto base" — transparente, sin caja negra: ves cada número que entra al cálculo.</p>
+        <label class="mono" style="font-size:0.8rem;color:var(--text-dim);display:block;margin-bottom:8px;">Desviación asumida (±puntos %, qué tan segura es la estimación): <input type="number" id="sigma-mexico" value="0.20" step="0.05" min="0.05" style="width:64px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 6px;"></label>
+        <button onclick="calcularNowcastInflacion()">Calcular nowcast México</button>
+        <div id="nowcast-resultado" style="margin-top:12px;"></div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Nowcast: Estados Unidos (FRED) — para llenar bitácora rápido</summary>
+      <div style="padding:0 16px 16px;">
+        <p style="margin-top:0;">Mismo modelo de "efecto base", aplicado al CPI de EE.UU. (serie CPIAUCSL). Recuerda: esto es más útil para <strong>validar rápido si el método funciona</strong> — es el mercado más líquido y vigilado, así que como lugar para apostar de verdad es el más difícil de vencer.</p>
+        <div class="banxico-token-row">
+          <input type="text" id="fred-token" placeholder="Pega tu API key gratuita de FRED aquí">
+          <button onclick="calcularNowcastEEUU()">Calcular nowcast EE.UU.</button>
+        </div>
+        <label class="mono" style="font-size:0.8rem;color:var(--text-dim);display:block;margin:8px 0;">Desviación asumida (±puntos %): <input type="number" id="sigma-eeuu" value="0.20" step="0.05" min="0.05" style="width:64px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 6px;"></label>
+        <p class="estado" style="margin:8px 0 0;">¿No tienes API key? Es gratis e inmediata en <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" rel="noopener">fred.stlouisfed.org</a> (solo pide registrarte).</p>
+        <div id="nowcast-eeuu-resultado" style="margin-top:12px;"></div>
+      </div>
+    </details>
+
+    <div class="barra-busqueda">
+      <input type="text" id="input-kw-inflacion" value="inflation" class="mono">
+      <button class="buscar" onclick="buscarMercadosPolymarket(document.getElementById('input-kw-inflacion').value, 'inflacion-resultados', 'Inflación')">Buscar</button>
+    </div>
+    <div class="chips" id="chips-inflacion">
+      <button class="chip" data-kw="mexico inflation">mexico inflation</button>
+      <button class="chip" data-kw="us inflation">us inflation</button>
+      <button class="chip" data-kw="cpi">cpi</button>
+      <button class="chip" data-kw="core cpi">core cpi</button>
+      <button class="chip" data-kw="banxico">banxico</button>
+      <button class="chip" data-kw="fed rate">fed rate</button>
+    </div>
+    <div id="inflacion-resultados"><p class="estado">Cargando mercados…</p></div>
+  </section>
+
+  <!-- LIGA MX -->
+  <section class="tab-panel" id="panel-ligamx">
+    <details>
+      <summary>Cómo funciona el modelo (Poisson de goles; Elo solo informativo)</summary>
+      <div style="padding:0 16px 16px;">
+        <p style="margin-top:0;">Elige tus dos equipos abajo. La app descarga los resultados históricos de Liga MX (temporada actual + anterior) y calcula dos cosas por separado:</p>
+        <ul style="margin:0 0 10px;padding-left:18px;">
+          <li><strong>Poisson de goles (esto ES lo que produce las probabilidades):</strong> con el promedio de goles anotados/recibidos de cada equipo (como local y como visita), calcula cuántos goles se esperan en el partido, y de ahí la probabilidad de victoria local, empate o visita. La ventaja de local queda capturada aquí, porque los promedios de local y de visita se calculan por separado.</li>
+          <li><strong>Elo (solo informativo — NO entra al cálculo):</strong> cada equipo empieza en 1500 puntos y sube o baja según a quién le gana, con ventaja de local (+60 pts). Se muestra como referencia de "forma", pero <strong>las probabilidades que ves no dependen del Elo en absoluto</strong>: si el Elo de un equipo cambiara 1000 puntos, los porcentajes no se moverían ni una décima. Integrarlo al cálculo sería un cambio mayor de modelo (requiere backtest en papel según la Sección 9.3 del manual).</li>
+        </ul>
+        <p style="margin:0 0 10px;">Es un modelo simple y de una sola fuente — no incluye lesiones, clima ni calendario de competencias. La evidencia dice que esto por sí solo <strong>no le gana a una casa de apuestas profesional</strong>; el valor está en compararlo contra el precio de Polymarket, no en tratarlo como verdad. <strong>Nota:</strong> equipos recién ascendidos o reincorporados (ej. Atlante en el Apertura 2026) todavía no tienen suficiente historial en primera división — el modelo te avisa cuando eso pasa, en vez de darte un número poco confiable.</p>
+        <p style="margin:0;"><strong>Actualización de agosto 2026:</strong> se agregaron dos ajustes estadísticos a partir de un estudio comparativo con datos reales de seis ligas. (1) <strong>Shrinkage:</strong> los factores de ataque/defensa de un equipo con pocos partidos ya no se toman al 100% — se jalan hacia el promedio de la liga en proporción a cuántos partidos reales los respaldan, para que una racha corta no produzca un número extremo. (2) <strong>Corrección Dixon-Coles:</strong> ajusta la probabilidad de marcadores bajos (0-0, 1-0, 0-1, 1-1), que el Poisson puro subestima o sobrestima. El parámetro de este ajuste (rho, que ves junto al xG en cada cálculo) se recalcula automáticamente con los datos de esta liga — no es un número fijo copiado de un paper. En backtest, esto mejoró el Brier score de Liga MX de -5.4% (peor que una apuesta ingenua) a +1.4% (mejor).</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>¿De dónde salen los datos históricos?</summary>
+      <div style="padding:0 16px 16px;">
+        <p style="margin-top:0;">De la API pública de ESPN (la misma que usa espn.com) — gratis y sin necesidad de una llave. Por eso la primera carga tarda unos segundos: descarga varios meses de partidos en varias partes.</p>
+        <p style="margin:0;"><strong>Aviso honesto:</strong> esta API no es un producto oficial de ESPN ni tiene garantía de soporte — podría cambiar o dejar de funcionar sin aviso algún día. Si eso pasa, dímelo y buscamos otra fuente.</p>
+      </div>
+    </details>
+
+    <div class="market-card" style="margin-bottom:16px;">
+      <p style="margin:0 0 10px;font-weight:600;">Calcula tu partido</p>
+      <div class="barra-busqueda" style="margin-bottom:10px;">
+        <select id="select-local" class="mono"></select>
+        <select id="select-visita" class="mono"></select>
+      </div>
+      <button class="buscar" onclick="calcularPartidoSeleccionado()">Calcular partido</button>
+      <div id="partido-resultado" style="margin-top:12px;"></div>
+    </div>
+
+    <div id="ligamx-resultados"><p class="estado">Elige dos equipos arriba y dale "Calcular partido" para ver el mercado de Polymarket correspondiente.</p></div>
+  </section>
+
+  <!-- CHAMPIONS LEAGUE -->
+  <section class="tab-panel" id="panel-champions">
+    <details>
+      <summary>Alcance de este modelo (léelo primero)</summary>
+      <div style="padding:0 16px 16px;">
+        <p style="margin-top:0;"><strong>Solo cubre partidos de la fase de liga</strong> (los 8 partidos que juega cada equipo contra rivales distintos, formato "suizo"). NO cubre octavos de final en adelante, porque esas rondas se juegan a ida y vuelta — el resultado que importa es el marcador global de los dos partidos, no el de un solo partido, y este modelo solo predice partidos individuales.</p>
+        <p style="margin:0 0 10px;">Usa la misma fórmula que Liga MX (Poisson de goles; el Elo se muestra pero no entra al cálculo), pero con un conjunto de equipos y datos completamente separado — no se mezclan. Ojo: la fase de liga da pocos partidos por equipo, así que es fácil que salga el aviso de muestra insuficiente.</p>
+        <p style="margin:0 0 10px;"><strong>Aviso honesto:</strong> en Champions cada equipo solo juega 8 partidos por temporada de fase de liga (contra 34 en Liga MX), y los equipos arrancan con niveles muy distintos entre sí (no es una liga pareja). Estos parámetros (K=20, +60 de local) fueron pensados para Liga MX y no se han validado por separado para Champions — trata las probabilidades de aquí con más cautela todavía que las de Liga MX.</p>
+        <p style="margin:0;"><strong>Actualización de agosto 2026:</strong> con solo 8 partidos por equipo, Champions es exactamente el caso donde más ayuda el <strong>shrinkage</strong> (jala los factores de equipos con pocos datos hacia el promedio de la liga en vez de confiar 100% en una muestra tan chica) y la <strong>corrección Dixon-Coles</strong> (rho, mostrado junto al xG, ajustado a los propios datos de fase de liga). Backtest real con las 8 jornadas de la fase de liga 2025-26: sin estos ajustes el modelo rendía 46% PEOR que una apuesta ingenua fija (predicciones extremas por muestra chica); con shrinkage + Dixon-Coles mejoró a solo 4% peor que la ingenua — una mejora real de 29%, pero <strong>todavía no le gana a una apuesta ingenua</strong>. Trátalo como el más débil de los tres modelos por ahora.</p>
+      </div>
+    </details>
+
+    <div class="market-card" style="margin-bottom:16px;">
+      <p style="margin:0 0 10px;font-weight:600;">Calcula tu partido (fase de liga)</p>
+      <div class="barra-busqueda" style="margin-bottom:10px;">
+        <select id="select-champions-local" class="mono"><option value="">Cargando equipos...</option></select>
+        <select id="select-champions-visita" class="mono"><option value="">Cargando equipos...</option></select>
+      </div>
+      <button class="buscar" onclick="calcularPartidoChampionsSeleccionado()">Calcular partido</button>
+      <div id="champions-partido-resultado" style="margin-top:12px;"></div>
+    </div>
+
+    <div id="champions-resultados"><p class="estado">Elige dos equipos arriba y dale "Calcular partido" para ver el mercado de Polymarket correspondiente.</p></div>
+  </section>
+
+  <!-- PREMIER LEAGUE -->
+  <section class="tab-panel" id="panel-premier">
+    <details>
+      <summary>Por qué se agregó esta liga (léelo primero)</summary>
+      <div style="padding:0 16px 16px;">
+        <p style="margin-top:0;">Mismo modelo que Liga MX y Champions (Poisson de goles con shrinkage + corrección Dixon-Coles; el Elo se muestra pero no entra al cálculo), aplicado a la temporada completa de la Premier League inglesa (agosto a mayo), no solo una fase de grupos.</p>
+        <p style="margin:0 0 10px;"><strong>Por qué se agregó (estudio de agosto 2026):</strong> en un backtest con casi toda la temporada 2025-26 real (280 de 380 partidos), fue la única de seis ligas estudiadas (Liga MX, Champions, MLS, La Liga, Bundesliga, Premier League) donde el modelo mejorado con shrinkage + Dixon-Coles superó de forma clara a una apuesta ingenua tanto calculando el ajuste con sus propios datos como en una prueba separada. La ventaja encontrada es de solo unos puntos de Brier score — no una brecha grande garantizada — así que trátalo con la misma cautela que Liga MX, no como una fuente de dinero fácil.</p>
+        <p style="margin:0;"><strong>Aviso honesto:</strong> los 20 equipos que participan cambian cada temporada (ascensos/descensos desde el Championship), así que a diferencia de Liga MX aquí no hay un diccionario fijo de equipos — el selector se llena solo con lo que encuentre en los datos descargados de ESPN, igual que Champions.</p>
+      </div>
+    </details>
+
+    <div class="market-card" style="margin-bottom:16px;">
+      <p style="margin:0 0 10px;font-weight:600;">Calcula tu partido</p>
+      <div class="barra-busqueda" style="margin-bottom:10px;">
+        <select id="select-premier-local" class="mono"><option value="">Cargando equipos...</option></select>
+        <select id="select-premier-visita" class="mono"><option value="">Cargando equipos...</option></select>
+      </div>
+      <button class="buscar" onclick="calcularPartidoPremierSeleccionado()">Calcular partido</button>
+      <div id="premier-partido-resultado" style="margin-top:12px;"></div>
+    </div>
+
+    <div id="premier-resultados"><p class="estado">Elige dos equipos arriba y dale "Calcular partido" para ver el mercado de Polymarket correspondiente.</p></div>
+  </section>
+
+  <!-- BITÁCORA -->
+  <section class="tab-panel" id="panel-bitacora">
+    <details>
+      <summary>¿Para qué sirve la Bitácora?</summary>
+      <p style="margin-top:0;">Guarda cada comparación aquí. Hay dos exportaciones distintas y hacen cosas diferentes:</p>
+      <p style="margin:0 0 8px;"><strong>"Exportar para pegar en Bitácora" (dorado)</strong> — genera las columnas A-P exactas de <span class="mono">bitacora_validacion.xlsx</span>. Ábrelo, copia las filas, y pégalas en la columna A de la primera fila vacía de la hoja "Bitacora". Las fórmulas (Brecha, Señal, Score, Recomendación) calculan solas. Es el flujo que debes usar para tu validación real.</p>
+      <p style="margin:0;"><strong>"Exportar CSV simple"</strong> — es solo tu respaldo de sesión: la app no guarda nada en tu navegador, así que si vas a cerrar la página y quieres retomar después con "Importar CSV", usa este.</p>
+    </details>
+    <div class="acciones-bitacora">
+      <button onclick="exportarParaBitacora()" style="border-color:var(--gold);color:var(--gold);">Exportar para pegar en Bitácora (.xlsx)</button>
+      <button onclick="exportarCSV()">Exportar CSV simple</button>
+      <label for="importar-csv">Importar CSV</label>
+      <input type="file" id="importar-csv" accept=".csv" onchange="importarCSV(this.files[0])">
+    </div>
+    <p class="estado" style="margin-top:6px;">El botón dorado genera un archivo listo para pegar directo en la columna A de una fila vacía de la hoja "Bitacora" en Excel — respeta el orden real de columnas (A-P) para que las fórmulas de Score, Brecha y Señal calculen solas.</p>
+    <p class="estado" id="bitacora-vacio">Todavía no has guardado ninguna comparación. Ve a Liga MX, Champions League, Premier League o Inflación, busca un mercado y dale "+ Bitácora" en el resultado que quieras registrar (registra todos, apuestes o no).</p>
+    <table id="tabla-bitacora" style="display:none;">
+      <thead>
+        <tr><th>Fecha</th><th>Categoría</th><th>Mercado</th><th>Resultado</th><th>Precio mercado</th><th>Tu prob.</th><th>Brecha</th><th></th></tr>
+      </thead>
+      <tbody id="bitacora-body"></tbody>
+    </table>
+  </section>
+
+  <!-- REGLAS -->
+  <section class="tab-panel" id="panel-reglas">
+    <p style="color:var(--text-dim);font-size:0.9rem;margin-top:0;">8 reglas de gestión de riesgo y validación que complementan el modelo (Poisson con shrinkage + Dixon-Coles / nowcast). No cambian ninguna probabilidad — protegen tu capital y la honestidad de tu validación mientras acumulas registros. Detalle completo en <span class="mono">BRECHA_Reglas_Validacion_Estrategia.pdf</span>.</p>
+    <p style="color:var(--text-dim);font-size:0.9rem;">La Regla 4 ya quedó resuelta en la auditoría de agosto 2026 (se corrigió el criterio de acierto). La Regla 6 sigue vigente y aplica ahora mismo: el modelo cambió de versión, así que los registros anteriores a agosto 2026 se calcularon con la versión vieja.</p>
+
+    <details>
+      <summary>Regla 1 — Freno de emergencia por drawdown</summary>
+      <p><strong>Regla:</strong> si el bankroll cae 20% desde su máximo histórico, pausa TODAS las apuestas con dinero real y re-audita el modelo (Brier, CLV, z-score) antes de continuar.</p>
+      <p><strong>Por qué:</strong> separa una mala racha normal de un modelo que dejó de funcionar. Sin este freno, ambos se ven igual hasta que ya perdiste mucho.</p>
+    </details>
+
+    <details>
+      <summary>Regla 2 — Sizing proporcional al edge (dentro del tope 1-2%)</summary>
+      <p><strong>Regla:</strong> Score de Confianza = 4 → apuesta cerca del mínimo (0.5-1%). Score 5-6 → hasta el máximo permitido (1.5-2%). Nunca excede el tope de tu manual.</p>
+      <p><strong>Por qué:</strong> no todas las señales con Score≥4 tienen el mismo margen de seguridad — el tamaño debería reflejarlo.</p>
+    </details>
+
+    <details>
+      <summary>Regla 3 — Ventana móvil (últimos 20-30 eventos)</summary>
+      <p><strong>Regla:</strong> cada semana, revisa z-score/Brier/CLV del histórico completo Y por separado de los últimos 20-30 eventos.</p>
+      <p><strong>Por qué:</strong> un acumulado grande diluye señales recientes de deterioro del modelo o de ajuste del mercado.</p>
+    </details>
+
+    <details>
+      <summary>Regla 4 — Criterio de acierto: ¿le ganaste al mercado? <span style="color:var(--jade);font-weight:400;">(RESUELTA · ago 2026)</span></summary>
+      <p><strong>Regla:</strong> un registro cuenta como acierto cuando tu error (Brier) fue <strong>menor que el del precio de mercado</strong> en ese mismo evento. El z-score de la hoja Resumen mide si ganarle al mercado con esa frecuencia es ventaja real o suerte.</p>
+      <p><strong>Por qué:</strong> esta regla nació como una alerta pendiente. El criterio anterior exigía que tu probabilidad estuviera a menos de 15 puntos de 0% o 100%, algo imposible de cumplir en partidos parejos (52% vs 48%) <em>aunque acertaras siempre</em>. En una prueba con 2 aciertos de 2, la tasa de calibración salía 0%; extrapolado a 100 registros igual de buenos, el z-score daba −10 y el Estado Automático decía "ALERTA: rinde peor que el azar" con un modelo que estaba ganando. Era un falso negativo capaz de hacerte abandonar un modelo que funciona.</p>
+      <p><strong>Qué se hizo:</strong> se cambió el criterio a la comparación directa contra el mercado. Como beneficio adicional, la hipótesis nula del z-score (50% = sin ventaja) ahora sí corresponde con lo que se mide: sin ventaja, le ganarías al mercado la mitad de las veces. El z-score pasó a ser una prueba estadística válida. Verificado con tres escenarios simulados de 100 registros: modelo bueno (60%) → "Señal sólida"; modelo nulo (50%) → "sin evidencia clara"; modelo roto (30%) → "ALERTA". Antes los tres decían ALERTA.</p>
+    </details>
+
+    <details>
+      <summary>Regla 5 — Disciplina conductual, por escrito</summary>
+      <p><strong>Regla:</strong> no subir el tamaño de apuesta después de ganar. No duplicar una apuesta para "recuperar" una pérdida. No saltarse el checklist aunque una apuesta "se sienta" segura.</p>
+      <p><strong>Por qué:</strong> la causa más común de pérdidas individuales no es el modelo — es romper tus propias reglas bajo presión emocional.</p>
+    </details>
+
+    <details>
+      <summary>Regla 6 — Versionado del modelo</summary>
+      <p><strong>Regla:</strong> al cambiar un parámetro (K de Elo, home advantage, Dixon-Coles), registra fecha y etiqueta de versión; separa las estadísticas de validación por versión.</p>
+      <p><strong>Por qué:</strong> mezclar el modelo viejo y el nuevo en el mismo z-score no representa bien a ninguno de los dos.</p>
+    </details>
+
+    <details>
+      <summary>Regla 7 — Comparación contra una estrategia de control</summary>
+      <p><strong>Regla:</strong> cada trimestre, calcula qué resultado hubiera dado "apostar siempre al favorito del mercado" en los mismos partidos y compáralo contra tu resultado real.</p>
+      <p><strong>Por qué:</strong> si no le ganas claramente a esa estrategia trivial, tu ventaja podría no ser tuya.</p>
+    </details>
+
+    <details>
+      <summary>Regla 8 — Límite de exposición total a la plataforma</summary>
+      <p><strong>Regla:</strong> define un techo de cuánto de tu patrimonio TOTAL (no solo tu bankroll de trading) mantienes en Polymarket en cualquier momento.</p>
+      <p><strong>Por qué:</strong> retiros, custodia y riesgo regulatorio son riesgos reales fuera del modelo.</p>
+    </details>
+  </section>
+
+</main>
+
+<footer>
+  Brecha v1 — herramienta de monitoreo personal, sin conexión con Polymarket ni Banxico más allá de leer datos públicos. No es asesoría financiera. Construido para uso propio.
+</footer>
+
+<script>
+// ---------- Utilidades ----------
+function parseMaybeJSON(val){
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string'){
+    try { return JSON.parse(val); } catch(e){ return []; }
+  }
+  return [];
+}
+
+function pct(n){ return (n*100).toFixed(1) + '%'; }
+
+// ---------- Convertir un nowcast (un solo número) en probabilidad por cubeta ----------
+// Método: tratamos el nowcast como el centro de una campana (distribución normal).
+// "sigma" es qué tan segura es esa campana — más chico = más plana, más ancho = más picuda.
+// Esto SÍ es una suposición transparente (no un dato medido) hasta que tu bitácora
+// te diga qué tan seguido se equivoca tu nowcast; ese día cambias el sigma por el real.
+function erf(x){
+  const signo = x < 0 ? -1 : 1;
+  x = Math.abs(x);
+  const a1=0.254829592, a2=-0.284496736, a3=1.421413741, a4=-1.453152027, a5=1.061405429, p=0.3275911;
+  const t = 1/(1+p*x);
+  const y = 1 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  return signo*y;
+}
+function normCDF(x, mu, sigma){
+  if (!sigma) return x >= mu ? 1 : 0;
+  return 0.5 * (1 + erf((x-mu)/(sigma*Math.sqrt(2))));
+}
+
+// Lee el texto de una cubeta de Polymarket ("≤3.1%", "3.4%", "≥4.2%", "2.5% to 2.9%")
+// y extrae el número (o el rango) y el tipo.
+function parsearUmbral(texto){
+  const t = String(texto).trim();
+
+  // Rango explícito: "2.5% to 2.9%", "2.5-2.9%", "between 2.5% and 2.9%".
+  // Se detecta ANTES que los casos de un solo número. El guion entre dos cifras
+  // es separador de rango, NO signo negativo — por eso se busca el patrón completo
+  // en vez de extraer números sueltos (eso convertía "2.5-2.9" en 2.5 y -2.9).
+  const mRango = t.match(/(-?\d+(?:\.\d+)?)\s*%?\s*(?:to|hasta|and|y|a|–|—|-)\s*(-?\d+(?:\.\d+)?)\s*%?/i);
+  if (mRango){
+    const a = parseFloat(mRango[1]), b = Math.abs(parseFloat(mRango[2]));
+    if (!isNaN(a) && !isNaN(b) && a !== b){
+      return { tipo:'rango', min: Math.min(a,b), max: Math.max(a,b), num: (Math.min(a,b)+Math.max(a,b))/2 };
+    }
+  }
+
+  const nums = (t.match(/-?\d+(?:\.\d+)?/g) || []).map(parseFloat).filter(n => !isNaN(n));
+  if (nums.length === 0) return null;
+  const num = nums[0];
+  let tipo = 'exacto';
+  if (/(≤|<=|or less|or lower|or below|less than|under|menos de|o menos)/i.test(t)) tipo = 'menorigual';
+  else if (/(≥|>=|or more|or higher|or above|greater than|over|above|mas de|más de|o mas|o más)/i.test(t)) tipo = 'mayorigual';
+  return { num, tipo };
+}
+
+// Probabilidad de que el nowcast (mu, sigma) caiga dentro de esa cubeta específica.
+// IMPORTANTE (corregido en auditoría de agosto 2026): las cubetas "X o menos" y "X o más"
+// también cubren medio escalón, igual que las cubetas exactas. El dato oficial se publica
+// redondeado a 1 decimal, así que "3.0% o menos" incluye cualquier valor real por debajo
+// de 3.05 (un 3.04 real se reporta como 3.0). Antes se usaba el corte exacto en 3.00,
+// lo que dejaba un hueco de 0.05 contra la cubeta vecina y hacía que el total de todas
+// las cubetas sumara ~86% en vez de 100% — subestimando sistemáticamente los extremos.
+function probabilidadBucket(umbral, mu, sigma){
+  if (!umbral || mu === null || mu === undefined) return null;
+  const paso = 0.05; // medio ancho del "escalón" típico (0.1 pts) de estos mercados
+  if (umbral.tipo === 'menorigual') return normCDF(umbral.num + paso, mu, sigma);
+  if (umbral.tipo === 'mayorigual') return 1 - normCDF(umbral.num - paso, mu, sigma);
+  if (umbral.tipo === 'rango'){
+    // El rango cubre de min a max inclusive; se extiende medio escalón a cada lado
+    // porque los extremos del rango publicado ya son valores redondeados.
+    return normCDF(umbral.max + paso, mu, sigma) - normCDF(umbral.min - paso, mu, sigma);
+  }
+  return normCDF(umbral.num + paso, mu, sigma) - normCDF(umbral.num - paso, mu, sigma);
+}
+
+let nowcastMexico = null; // { valor, sigma }
+let nowcastEEUU = null;
+
+function clasificarBrecha(brecha){
+  const abs = Math.abs(brecha);
+  if (abs < 10) return { color:'var(--text-dim)', favorable:null };
+  return { color: brecha > 0 ? 'var(--jade)' : 'var(--rose)', favorable: brecha > 0 };
+}
+
+// ---------- Pestañas ----------
+function cambiarTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('activo', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('activo', p.id === 'panel-' + tab));
+  if (tab === 'champions' && !equiposChampionsPoblados){
+    const cont = document.getElementById('champions-partido-resultado');
+    cargarHistorialChampionsSiFalta(cont).then(ok => { if (ok) poblarSelectsChampions(); });
+  }
+  if (tab === 'premier' && !equiposPremierPoblados){
+    const cont = document.getElementById('premier-partido-resultado');
+    cargarHistorialPremierSiFalta(cont).then(ok => { if (ok) poblarSelectsPremier(); });
+  }
+}
+
+// ---------- Polymarket ----------
+// Filtro de seguridad: si una búsqueda amplia llegara a incluir un mercado que no tiene
+// nada que ver con Liga MX o inflación (ej. geopolítica), lo bloqueamos aquí antes de mostrarlo.
+const TEMAS_BLOQUEADOS = ['iran','israel','gaza','ukrain','russia',' war ','guerra','trump','biden','president','election','congress','shutdown'];
+function pasaFiltroSeguridad(preguntaNorm){
+  return !TEMAS_BLOQUEADOS.some(t => preguntaNorm.includes(t));
+}
+
+// Busca por TEXTO en Polymarket (endpoint public-search).
+// IMPORTANTE: antes se pedía el top-300 por volumen de 24h y se filtraba en el navegador.
+// Eso NUNCA podía encontrar Liga MX ni inflación de México: el top-300 arranca en cientos de
+// miles de dólares de volumen diario, y estos mercados mueven decenas de dólares.
+async function buscarMercadosPolymarket(keyword, contenedorId, categoria, opciones){
+  const cont = document.getElementById(contenedorId);
+  const kw = (keyword || '').trim();
+  if (kw.length < 3){
+    cont.innerHTML = '<p class="estado">Escribe al menos 3 letras para buscar.</p>';
+    return;
+  }
+  cont.innerHTML = '<p class="estado">Buscando mercados…</p>';
+  try{
+    const url = 'https://gamma-api.polymarket.com/public-search?q=' + encodeURIComponent(kw) +
+                '&limit_per_type=20&events_status=active';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+
+    // La búsqueda devuelve EVENTOS; cada evento agrupa varios mercados binarios
+    // (ej. "Atlante gana", "Empate", "Toluca gana" son 3 mercados Yes/No distintos).
+    // Aplanamos conservando el título del evento, que es donde vienen los dos equipos.
+    let filas = [];
+    (data.events || []).forEach(ev => {
+      (ev.markets || []).forEach(m => {
+        if (m.closed === true || m.active === false) return;
+        filas.push({ m: m, eventoTitulo: ev.title || '', eventoSlug: ev.slug || '' });
+      });
+    });
+
+    const tokens = normalizarTexto(kw).split(/\s+/).filter(Boolean);
+    filas = filas.filter(f => {
+      const norm = normalizarTexto((f.eventoTitulo || '') + ' ' + (f.m.question || ''));
+      if (!pasaFiltroSeguridad(norm)) return false;
+      if (opciones && opciones.filtro) return opciones.filtro(norm);
+      return tokens.every(t => norm.includes(t));
+    });
+
+    if (filas.length === 0){
+      cont.innerHTML = '<p class="estado">No se encontraron mercados activos para "' + keyword + '". Es posible que Polymarket todavía no tenga mercado para esto — no es un error tuyo, prueba de nuevo más cerca de la fecha.</p>';
+      return;
+    }
+    cont.innerHTML = '';
+    filas.slice(0, 25).forEach(f => cont.appendChild(
+      crearTarjetaMercado(f.m, categoria, f.eventoTitulo, opciones && opciones.contexto)
+    ));
+  } catch(err){
+    cont.innerHTML = '<p class="estado error">No se pudo conectar con Polymarket (' + err.message + '). Intenta de nuevo en un momento.</p>';
+  }
+}
+
+function crearTarjetaMercado(m, categoria, eventoTitulo, contexto){
+  const outcomes = parseMaybeJSON(m.outcomes);
+  const precios = parseMaybeJSON(m.outcomePrices).map(p => parseFloat(p));
+  const card = document.createElement('div');
+  card.className = 'market-card';
+
+  // El "lado" real de un mercado binario Yes/No de Polymarket viene en groupItemTitle
+  // ("Atlante FC", "Draw (Atlante FC vs. ...)", "Deportivo Toluca FC"). Sin esto es
+  // imposible saber a qué resultado corresponde el "Yes".
+  const ladoMercado = m.groupItemTitle || '';
+  const textoEvento = (eventoTitulo || '') + ' ' + (m.question || '');
+
+  const volNum = (m.volume24hr !== undefined && m.volume24hr !== null) ? Number(m.volume24hr) : null;
+  const vol = (volNum !== null && !isNaN(volNum)) ? volNum.toLocaleString('es-MX', {maximumFractionDigits:0}) : '—';
+  const liq = (m.liquidityNum !== undefined && m.liquidityNum !== null && !isNaN(Number(m.liquidityNum)))
+    ? Number(m.liquidityNum).toLocaleString('es-MX', {maximumFractionDigits:0}) : '—';
+  const bid = (m.bestBid !== undefined && !isNaN(parseFloat(m.bestBid))) ? parseFloat(m.bestBid) : null;
+  const ask = (m.bestAsk !== undefined && !isNaN(parseFloat(m.bestAsk))) ? parseFloat(m.bestAsk) : null;
+  const spreadCent = (bid !== null && ask !== null) ? ((ask - bid) * 100) : null;
+  const fin = m.endDate ? new Date(m.endDate).toLocaleDateString('es-MX', {day:'numeric', month:'short', year:'numeric'}) : '—';
+  const slugLink = (m.eventSlug || m.slug);
+  const link = slugLink ? ('https://polymarket.com/event/' + slugLink) : ('https://polymarket.com/search?_q=' + encodeURIComponent(m.question || ''));
+
+  let lineaModelo = '';
+  let equiposDetectados = [];
+  let estimacionPartido = null;
+  let nowcastAplicable = null;
+  // Etiqueta EXACTA que se escribe en la Bitácora. Tiene que coincidir carácter por
+  // carácter con las etiquetas de la hoja Resumen de bitacora_validacion.xlsx
+  // ("Liga MX", "Champions League", "Inflacion Mexico", "Inflacion EEUU", "Otra"),
+  // porque esa hoja usa COUNTIF/AVERAGEIF por texto exacto.
+  let categoriaBitacora = categoria;
+
+  // Contexto explícito (viene de "Calcular partido"): equipos y estimación ya resueltos.
+  // Es la vía que usa Champions, donde los nombres no están en la lista fija de Liga MX.
+  if (contexto && contexto.equipos && contexto.equipos.length >= 2 && contexto.est){
+    equiposDetectados = contexto.equipos;
+    estimacionPartido = contexto.est;
+  } else if (categoria === 'Liga MX' && statsLigaMX){
+    equiposDetectados = detectarEquipos(textoEvento);
+    if (equiposDetectados.length >= 2){
+      estimacionPartido = estimarPartido(equiposDetectados[0], equiposDetectados[1]);
+    }
+  }
+  if (estimacionPartido && equiposDetectados.length >= 2){
+    {
+      lineaModelo = '<div class="market-meta mono" style="color:var(--gold);">Modelo: ' + equiposDetectados[0] + ' ' + (estimacionPartido.pLocal*100).toFixed(0) + '% · Empate ' + (estimacionPartido.pEmpate*100).toFixed(0) + '% · ' + equiposDetectados[1] + ' ' + (estimacionPartido.pVisita*100).toFixed(0) + '% &nbsp;(xG ' + estimacionPartido.xgLocal.toFixed(2) + ' – ' + estimacionPartido.xgVisita.toFixed(2) + ')</div>';
+      if (!estimacionPartido.confiable){
+        lineaModelo += '<div class="market-meta mono" style="color:var(--amber);">⚠ Muestra insuficiente: ' + equiposDetectados[0] + ' ' + estimacionPartido.pjLocal + ' pj · ' + equiposDetectados[1] + ' ' + estimacionPartido.pjVisita + ' pj (mín. ' + MIN_PARTIDOS_CONFIABLE + '). No uses este % para apostar.</div>';
+      }
+    }
+  }
+  if (categoria === 'Inflación'){
+    const q = normalizarTexto(textoEvento);
+    // Antes: cualquier mercado que NO dijera "mexico" recibía el nowcast de EE.UU.
+    // Eso aplicaba el nowcast estadounidense a inflación de Argentina, Turquía, etc.
+    // Ahora hay que identificar el país de forma POSITIVA o no se aplica nada.
+    const esMexico = /(mexico|inegi|banxico|inpc)/.test(q);
+    const esEEUU = /(\bus\b|\bu\.s\.|united states|\busa\b|american|\bbls\b|\bfed\b)/.test(q);
+    // El nowcast estima inflación ANUAL (year-over-year). Si el mercado pregunta por la
+    // variación MENSUAL, aplicarle un número anual da una brecha falsa gigantesca.
+    const esMensual = /(month-over-month|month over month|\bmom\b|monthly|mensual)/.test(q);
+
+    categoriaBitacora = esMexico ? 'Inflacion Mexico' : (esEEUU ? 'Inflacion EEUU' : 'Otra');
+
+    if (esMensual){
+      lineaModelo = '<div class="market-meta mono" style="color:var(--amber);">⚠ Este mercado parece ser de inflación MENSUAL. El nowcast de Brecha estima inflación ANUAL — no se autollena para no darte una brecha falsa. Calcúlalo tú si lo necesitas.</div>';
+    } else if (esMexico && nowcastMexico){
+      nowcastAplicable = nowcastMexico;
+    } else if (esEEUU && nowcastEEUU){
+      nowcastAplicable = nowcastEEUU;
+    } else if ((nowcastMexico || nowcastEEUU) && !esMexico && !esEEUU){
+      lineaModelo = '<div class="market-meta mono" style="color:var(--amber);">⚠ No pude identificar el país de este mercado de inflación — no se autollena ningún nowcast. Escribe tu probabilidad a mano si sabes a qué país corresponde.</div>';
+    }
+    if (nowcastAplicable){
+      lineaModelo = '<div class="market-meta mono" style="color:var(--gold);">Nowcast anual aplicado (' + (esMexico?'México':'EE.UU.') + '): ' + nowcastAplicable.valor.toFixed(2) + '% &nbsp;±' + nowcastAplicable.sigma.toFixed(2) + ' asumido</div>';
+    }
+  }
+
+  card.innerHTML =
+    '<div class="market-head">' +
+      '<a href="' + link + '" target="_blank" rel="noopener" class="market-title">' + (m.question || 'Mercado sin título') + '</a>' +
+      '<div class="market-meta mono">Vol 24h: $' + vol + ' · Liquidez: $' + liq +
+        (spreadCent !== null ? (' · Spread: <span style="color:' + (spreadCent < 5 ? 'var(--jade)' : 'var(--rose)') + '">' + spreadCent.toFixed(1) + '¢</span>') : '') +
+        ' · Cierra: ' + fin + '</div>' +
+      (ladoMercado ? '<div class="market-meta mono" style="color:var(--text-dim);">Lado de este mercado: ' + ladoMercado + '</div>' : '') +
+      lineaModelo +
+    '</div>' +
+    '<div class="outcomes"></div>';
+
+  const outcomesWrap = card.querySelector('.outcomes');
+  outcomes.forEach((o, i) => {
+    const precioMercado = (precios[i] !== undefined && !isNaN(precios[i])) ? precios[i] : null;
+    const row = document.createElement('div');
+    row.className = 'outcome-row';
+    row.innerHTML =
+      '<div class="outcome-name">' + o + '</div>' +
+      '<div class="outcome-price mono">' + (precioMercado !== null ? pct(precioMercado) : '—') + '</div>' +
+      '<input type="number" min="0" max="100" step="1" placeholder="tu %" class="input-prob mono">' +
+      '<div class="gauge-wrap">' +
+        '<div class="gauge-track">' +
+          '<div class="gauge-market" style="left:' + (precioMercado !== null ? (precioMercado*100) : 0) + '%"></div>' +
+          '<div class="gauge-you" style="left:0%; display:none;"></div>' +
+          '<div class="gauge-gap" style="display:none;"></div>' +
+        '</div>' +
+        '<div class="gauge-label mono"></div>' +
+      '</div>' +
+      '<button class="btn-log" disabled>+ Bitácora</button>';
+
+    const input = row.querySelector('.input-prob');
+    const gaugeYou = row.querySelector('.gauge-you');
+    const gaugeGap = row.querySelector('.gauge-gap');
+    const gaugeLabel = row.querySelector('.gauge-label');
+    const btnLog = row.querySelector('.btn-log');
+
+    input.addEventListener('input', () => {
+      const val = parseFloat(input.value);
+      if (isNaN(val) || precioMercado === null){
+        gaugeYou.style.display = 'none';
+        gaugeGap.style.display = 'none';
+        gaugeLabel.textContent = '';
+        btnLog.disabled = true;
+        return;
+      }
+      const brecha = val - (precioMercado * 100);
+      const clase = clasificarBrecha(brecha);
+      gaugeYou.style.display = 'block';
+      gaugeYou.style.left = Math.max(0, Math.min(100,val)) + '%';
+      gaugeYou.style.background = clase.color;
+      const izq = Math.max(0, Math.min(val, precioMercado*100));
+      const der = Math.min(100, Math.max(val, precioMercado*100));
+      gaugeGap.style.display = 'block';
+      gaugeGap.style.left = izq + '%';
+      gaugeGap.style.width = Math.max(0,(der-izq)) + '%';
+      let mensaje;
+      if (clase.favorable === null){
+        mensaje = 'Sin ventaja clara aquí';
+      } else if (clase.favorable){
+        mensaje = 'Señal: considera comprar <strong>"' + o + '"</strong> en Polymarket';
+      } else {
+        mensaje = 'El modelo no favorece "' + o + '" — revisa la otra opción de este mismo mercado';
+      }
+      gaugeLabel.innerHTML = 'Brecha: <span style="color:' + clase.color + '">' + (brecha>0?'+':'') + brecha.toFixed(1) + ' pts</span><br><span style="color:' + clase.color + ';font-weight:700;">' + mensaje + '</span>';
+      btnLog.disabled = false;
+      // fechaEvento: usamos la fecha de cierre del mercado (m.endDate) como "fecha del
+      // partido/evento" — es lo más cercano a la columna A de la Bitácora real. Si Polymarket
+      // no la trae, caemos en la fecha de hoy (registro) como respaldo.
+      btnLog.onclick = () => agregarBitacora({
+        fecha: m.endDate || new Date().toISOString(),
+        categoria: categoriaBitacora,
+        mercado: (eventoTitulo ? (eventoTitulo + ' — ') : '') + m.question,
+        resultado: o,
+        precioMercado: (precioMercado*100).toFixed(1),
+        tuProbabilidad: val.toFixed(1),
+        brecha: brecha.toFixed(1),
+        volumen: (volNum !== null && !isNaN(volNum)) ? Math.round(volNum) : '',
+        codigo: (slugLink || normalizarTexto(m.question).slice(0,20)) + '-' + normalizarTexto(o).slice(0,12)
+      });
+    });
+
+    outcomesWrap.appendChild(row);
+
+    // Si el modelo (Liga MX) tiene una probabilidad para este resultado específico,
+    // se rellena solo — no necesitas escribir nada a mano. Puedes editarlo si no
+    // estás de acuerdo con el modelo.
+    if (estimacionPartido){
+      const probModelo = mapearProbabilidadModelo(o, equiposDetectados, estimacionPartido, ladoMercado);
+      if (probModelo !== null && precioMercado !== null){
+        input.value = (probModelo*100).toFixed(1);
+        input.placeholder = 'auto (modelo)';
+        input.style.borderColor = 'var(--gold)';
+        input.dispatchEvent(new Event('input'));
+      }
+    }
+    if (nowcastAplicable){
+      const umbral = parsearUmbral(o);
+      const probNowcast = probabilidadBucket(umbral, nowcastAplicable.valor, nowcastAplicable.sigma);
+      if (probNowcast !== null && precioMercado !== null){
+        input.value = (probNowcast*100).toFixed(1);
+        input.placeholder = 'auto (nowcast)';
+        input.style.borderColor = 'var(--gold)';
+        input.dispatchEvent(new Event('input'));
+      }
+    }
+  });
+
+  return card;
+}
+
+// ---------- Banxico ----------
+async function consultarBanxico(){
+  const token = document.getElementById('banxico-token').value.trim();
+  const cont = document.getElementById('banxico-resultado');
+  if (!token){
+    cont.innerHTML = '<p class="estado">Pega tu token gratuito de Banxico. <a href="https://www.banxico.org.mx/SieAPIRest/service/v1/token" target="_blank" rel="noopener">Consíguelo aquí gratis</a>.</p>';
+    return;
+  }
+  cont.innerHTML = '<p class="estado">Consultando Banxico…</p>';
+  const series = {
+    'SP30577': 'Inflación mensual (INPC)',
+    'SP30578': 'Inflación anual (INPC)',
+    'SP30579': 'Inflación acumulada (INPC)',
+    'SF60634': 'Tasa objetivo Banxico'
+  };
+  const ids = Object.keys(series).join(',');
+  try{
+    const res = await fetch('https://www.banxico.org.mx/SieAPIRest/service/v1/series/' + ids + '/datos/oportuno?token=' + encodeURIComponent(token), {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const lista = data.bmx.series.map(s => {
+      const nombre = series[s.idSerie] || s.titulo || s.idSerie;
+      const dato = (s.datos && s.datos[0]) ? s.datos[0] : null;
+      return '<div class="dato-banxico"><span class="dato-nombre">' + nombre + '</span><span class="dato-valor mono">' + (dato ? dato.dato + '%' : '—') + '</span><span class="dato-fecha mono">' + (dato ? dato.fecha : '') + '</span></div>';
+    }).join('');
+    cont.innerHTML = lista;
+  } catch(err){
+    cont.innerHTML = '<p class="estado error">No se pudo consultar Banxico (' + err.message + '). Revisa tu token o intenta de nuevo.</p>';
+  }
+}
+
+// ---------- Nowcast de inflación (modelo de "efecto base") ----------
+// Idea: la inflación anual de M meses = variación acumulada del índice en 12 meses.
+// Para proyectar el próximo dato SIN esperar a que se publique, tomamos:
+//   1) la inflación anual ya conocida (yoyActual)
+//   2) le sumamos la tendencia mensual reciente (promedio de los últimos 3 meses)
+//   3) le restamos la variación mensual que "sale" de la ventana de 12 meses
+//      (el mismo mes, hace un año) — esto es lo que en México se conoce como "efecto base".
+// Es un modelo simple y transparente, no una caja negra: cada número se muestra en pantalla.
+async function calcularNowcastInflacion(){
+  const cont = document.getElementById('nowcast-resultado');
+  const token = document.getElementById('banxico-token').value.trim();
+  if (!token){
+    cont.innerHTML = '<p class="estado">Necesitas tu token de Banxico (ponlo arriba, en "Dato oficial de referencia") para calcular el nowcast.</p>';
+    return;
+  }
+  cont.innerHTML = '<p class="estado">Consultando historial del INPC…</p>';
+  try{
+    const hoy = new Date();
+    const inicio = new Date(hoy.getFullYear(), hoy.getMonth() - 16, 1);
+    const fmt = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    // SP1 = INPC general, índice mensual. Si esta serie no es la correcta, el error se explica abajo.
+    const url = 'https://www.banxico.org.mx/SieAPIRest/service/v1/series/SP1/datos/' + fmt(inicio) + '/' + fmt(hoy) + '?token=' + encodeURIComponent(token);
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const serie = data.bmx.series[0].datos
+      .map(d => ({ fecha: d.fecha, valor: parseFloat(String(d.dato).replace(',','')) }))
+      .filter(d => !isNaN(d.valor));
+    const n = serie.length;
+    if (n < 14){
+      cont.innerHTML = '<p class="estado error">No hay suficiente historial todavía (' + n + ' meses, se necesitan al menos 14). Intenta de nuevo en unos días o revisa el rango de fechas.</p>';
+      return;
+    }
+    const ultimo = serie[n-1];
+    const haceUnAno = serie[n-13];
+    const yoyActual = (ultimo.valor / haceUnAno.valor - 1) * 100;
+
+    let sumaMom = 0;
+    for (let i = n-3; i < n; i++){ sumaMom += (serie[i].valor / serie[i-1].valor - 1) * 100; }
+    const promedioMomReciente = sumaMom / 3;
+
+    const momQueSale = (serie[n-12].valor / serie[n-13].valor - 1) * 100;
+    const nowcast = yoyActual + (promedioMomReciente - momQueSale);
+    const sigma = parseFloat(document.getElementById('sigma-mexico').value) || 0.20;
+    nowcastMexico = { valor: nowcast, sigma: sigma };
+
+    cont.innerHTML =
+      '<div class="dato-banxico"><span class="dato-nombre">Inflación anual actual (' + ultimo.fecha + ')</span><span class="dato-valor mono">' + yoyActual.toFixed(2) + '%</span></div>' +
+      '<div class="dato-banxico"><span class="dato-nombre">Variación mensual promedio (últimos 3 meses)</span><span class="dato-valor mono">' + promedioMomReciente.toFixed(2) + '%</span></div>' +
+      '<div class="dato-banxico"><span class="dato-nombre">Variación mensual que sale de la ventana (efecto base)</span><span class="dato-valor mono">' + momQueSale.toFixed(2) + '%</span></div>' +
+      '<div class="dato-banxico" style="border-color:var(--gold);"><span class="dato-nombre" style="color:var(--gold);font-weight:700;">Nowcast: próxima inflación anual estimada</span><span class="dato-valor mono" style="color:var(--gold);font-weight:700;">' + nowcast.toFixed(2) + '%</span></div>' +
+      '<p class="estado" style="margin-top:10px;">Fórmula: inflación anual actual + (promedio mensual reciente − variación que sale de la ventana). Con este nowcast como centro y ±' + sigma.toFixed(2) + ' pts de margen asumido, ya se calculó la probabilidad de cada cubeta de abajo — no necesitas escribir nada, aunque puedes editarlo si no estás de acuerdo.</p>';
+    buscarMercadosPolymarket(document.getElementById('input-kw-inflacion').value, 'inflacion-resultados', 'Inflación');
+  } catch(err){
+    cont.innerHTML = '<p class="estado error">No se pudo calcular el nowcast (' + err.message + '). Si persiste, es posible que el ID de serie del INPC (SP1) no sea el correcto para tu token — dímelo y lo verificamos juntos.</p>';
+  }
+}
+
+// ---------- Nowcast de inflación EE.UU. (FRED, mismo modelo de "efecto base") ----------
+async function calcularNowcastEEUU(){
+  const cont = document.getElementById('nowcast-eeuu-resultado');
+  const token = document.getElementById('fred-token').value.trim();
+  if (!token){
+    cont.innerHTML = '<p class="estado">Necesitas tu API key gratuita de FRED (campo de arriba) para calcular este nowcast.</p>';
+    return;
+  }
+  cont.innerHTML = '<p class="estado">Consultando historial del CPI (FRED)…</p>';
+  try{
+    const hoy = new Date();
+    const inicio = new Date(hoy.getFullYear(), hoy.getMonth() - 17, 1);
+    const fmt = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    const urlFred = 'https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&api_key=' + encodeURIComponent(token) +
+                '&file_type=json&observation_start=' + fmt(inicio) + '&sort_order=asc';
+    // FRED no manda cabeceras CORS, así que un navegador no puede pedirle datos directamente
+    // (a diferencia de Banxico, que sí las manda). Se rodea con un proxy público de solo
+    // lectura (allorigins) que reenvía la petición y sí agrega esas cabeceras. Si algún día
+    // este proxy deja de funcionar, la alternativa es correr un proxy propio (Netlify/Cloudflare
+    // Functions) o meter los datos del CPI a mano desde fred.stlouisfed.org.
+    const url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(urlFred);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const serie = (data.observations || [])
+      .map(d => ({ fecha: d.date, valor: parseFloat(d.value) }))
+      .filter(d => !isNaN(d.valor));
+    const n = serie.length;
+    if (n < 14){
+      cont.innerHTML = '<p class="estado error">Solo hay ' + n + ' meses de historial (se necesitan al menos 14). Revisa el rango o intenta de nuevo.</p>';
+      return;
+    }
+    const ultimo = serie[n-1];
+    const haceUnAno = serie[n-13];
+    const yoyActual = (ultimo.valor / haceUnAno.valor - 1) * 100;
+
+    let sumaMom = 0;
+    for (let i = n-3; i < n; i++){ sumaMom += (serie[i].valor / serie[i-1].valor - 1) * 100; }
+    const promedioMomReciente = sumaMom / 3;
+
+    const momQueSale = (serie[n-12].valor / serie[n-13].valor - 1) * 100;
+    const nowcast = yoyActual + (promedioMomReciente - momQueSale);
+    const sigma = parseFloat(document.getElementById('sigma-eeuu').value) || 0.20;
+    nowcastEEUU = { valor: nowcast, sigma: sigma };
+
+    cont.innerHTML =
+      '<div class="dato-banxico"><span class="dato-nombre">Inflación anual actual EE.UU. (' + ultimo.fecha + ')</span><span class="dato-valor mono">' + yoyActual.toFixed(2) + '%</span></div>' +
+      '<div class="dato-banxico"><span class="dato-nombre">Variación mensual promedio (últimos 3 meses)</span><span class="dato-valor mono">' + promedioMomReciente.toFixed(2) + '%</span></div>' +
+      '<div class="dato-banxico"><span class="dato-nombre">Variación mensual que sale de la ventana (efecto base)</span><span class="dato-valor mono">' + momQueSale.toFixed(2) + '%</span></div>' +
+      '<div class="dato-banxico" style="border-color:var(--gold);"><span class="dato-nombre" style="color:var(--gold);font-weight:700;">Nowcast: próxima inflación anual EE.UU. estimada</span><span class="dato-valor mono" style="color:var(--gold);font-weight:700;">' + nowcast.toFixed(2) + '%</span></div>' +
+      '<p class="estado" style="margin-top:10px;">Con este nowcast como centro y ±' + sigma.toFixed(2) + ' pts asumidos, ya se calculó la probabilidad de cada cubeta de abajo. Recuerda: aquí es más difícil que haya una brecha real — sirve para tu bitácora de validación, no necesariamente para apostar ya.</p>';
+    buscarMercadosPolymarket(document.getElementById('input-kw-inflacion').value, 'inflacion-resultados', 'Inflación');
+  } catch(err){
+    cont.innerHTML = '<p class="estado error">No se pudo calcular el nowcast EE.UU. (' + err.message + '). ' +
+      'Se intentó a través de un proxy público (allorigins.win) porque FRED no permite pedir datos directo desde el navegador; ' +
+      'si ese proxy está caído, avísame y armamos uno propio (Netlify/Cloudflare Functions).</p>' +
+      '<p class="estado">Mientras tanto, puedes calcular el nowcast a mano: entra a ' +
+      '<a href="https://fred.stlouisfed.org/series/CPIAUCSL" target="_blank" rel="noopener">fred.stlouisfed.org/series/CPIAUCSL</a>, ' +
+      'anota el valor del índice de los últimos 14 meses, y aplica la fórmula: inflación anual actual + (variación mensual promedio de los últimos 3 meses − variación mensual de hace 12 meses). Dime esos 14 números y te calculo el nowcast yo mismo.</p>';
+  }
+}
+
+// ---------- Liga MX: Elo + Poisson ----------
+const EQUIPOS_LIGA_MX = [
+  { label:'América', alias:['America','Club America'] },
+  { label:'Atlante', alias:['Atlante'] },
+  { label:'Atlas', alias:['Atlas'] },
+  { label:'Atlético San Luis', alias:['Atletico San Luis','San Luis'] },
+  { label:'Chivas', alias:['Chivas','Guadalajara'] },
+  { label:'Cruz Azul', alias:['Cruz Azul'] },
+  { label:'Juárez', alias:['Juarez','FC Juarez'] },
+  { label:'León', alias:['Leon'] },
+  { label:'Monterrey', alias:['Monterrey','Rayados'] },
+  { label:'Necaxa', alias:['Necaxa'] },
+  { label:'Pachuca', alias:['Pachuca'] },
+  { label:'Puebla', alias:['Puebla'] },
+  { label:'Pumas', alias:['Pumas','UNAM'] },
+  { label:'Querétaro', alias:['Queretaro'] },
+  { label:'Santos Laguna', alias:['Santos Laguna','Santos'] },
+  { label:'Tigres', alias:['Tigres','UANL'] },
+  { label:'Tijuana', alias:['Tijuana','Xolos'] },
+  { label:'Toluca', alias:['Toluca'] }
+];
+
+let statsLigaMX = null;
+
+function normalizarTexto(s){
+  return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
+function poblarSelectsLigaMX(){
+  const opciones = EQUIPOS_LIGA_MX.map(e => '<option value="' + e.label + '">' + e.label + '</option>').join('');
+  document.getElementById('select-local').innerHTML = '<option value="">Equipo local...</option>' + opciones;
+  document.getElementById('select-visita').innerHTML = '<option value="">Equipo visitante...</option>' + opciones;
+}
+
+function detectarEquipos(pregunta){
+  const texto = normalizarTexto(pregunta);
+  const encontrados = [];
+  EQUIPOS_LIGA_MX.forEach(eq => {
+    let mejorPos = -1;
+    eq.alias.forEach(a => {
+      const pos = texto.indexOf(normalizarTexto(a));
+      if (pos !== -1 && (mejorPos === -1 || pos < mejorPos)) mejorPos = pos;
+    });
+    if (mejorPos !== -1) encontrados.push({ label: eq.label, pos: mejorPos });
+  });
+  encontrados.sort((a,b) => a.pos - b.pos);
+  const vistos = new Set();
+  const unicos = [];
+  encontrados.forEach(x => { if(!vistos.has(x.label)){ vistos.add(x.label); unicos.push(x.label); } });
+  return unicos;
+}
+
+function resolverClaveEquipo(nombre, diccionario){
+  if (diccionario[nombre] !== undefined) return nombre;
+  const eq = EQUIPOS_LIGA_MX.find(e => e.label === nombre);
+  const candidatos = eq ? eq.alias.concat([eq.label]) : [nombre];
+  const norms = candidatos.map(normalizarTexto);
+  const claves = Object.keys(diccionario);
+  const encontrada = claves.find(k => {
+    const kn = normalizarTexto(k);
+    return norms.some(n => kn.includes(n) || n.includes(kn));
+  });
+  return encontrada || null;
+}
+
+function equipoCoincideConTexto(label, texto){
+  const eq = EQUIPOS_LIGA_MX.find(e => e.label === label);
+  const candidatos = eq ? eq.alias.concat([eq.label]) : [label];
+  const norm = normalizarTexto(texto);
+  return candidatos.some(a => norm.includes(normalizarTexto(a)));
+}
+
+function factorial(n){ return n <= 1 ? 1 : n * factorial(n-1); }
+function poissonProb(k, lambda){ return Math.exp(-lambda) * Math.pow(lambda, k) / factorial(k); }
+
+// Partidos mínimos por equipo para que los factores de ataque/defensa signifiquen algo.
+// Por debajo de esto la app sigue calculando, pero avisa que el número no es confiable.
+const MIN_PARTIDOS_CONFIABLE = 8;
+
+// Corrección Dixon-Coles (1997) para marcadores bajos (0-0, 1-0, 0-1, 1-1), donde el
+// Poisson "puro" que asume goles local/visita independientes se equivoca sistemáticamente.
+// rho=0 no cambia nada (los 4 casos dan tau=1) — así el modelo es retrocompatible si
+// alguna liga no tiene todavía suficientes datos para ajustar rho de forma confiable.
+function tauDC(x, y, lam, mu, rho){
+  if (x === 0 && y === 0) return 1 - lam*mu*rho;
+  if (x === 0 && y === 1) return 1 + lam*rho;
+  if (x === 1 && y === 0) return 1 + mu*rho;
+  if (x === 1 && y === 1) return 1 - rho;
+  return 1;
+}
+
+// Rango válido de rho para un par de xG concretos (restricción del propio modelo
+// Dixon-Coles). Fuera de este rango alguna de las cuatro correcciones sale NEGATIVA,
+// lo que produciría una "probabilidad" negativa para ese marcador.
+// Corregido en la auditoría de agosto 2026: antes se truncaba la probabilidad negativa
+// a cero, lo que silenciosamente deformaba la distribución (por ejemplo, borraba por
+// completo la probabilidad del 0-0 en partidos de muchos goles). Acotar rho es la
+// solución correcta: se usa el rho más cercano al ajustado que sigue siendo válido.
+function acotarRho(rho, lam, mu){
+  const maximo = Math.min(1/(lam*mu), 1);
+  const minimo = Math.max(-1/lam, -1/mu);
+  return Math.max(minimo, Math.min(maximo, rho));
+}
+
+// Núcleo Poisson compartido: recorre marcadores 0-8 por equipo y NORMALIZA para que
+// las tres probabilidades sumen exactamente 100% (los tres resultados son exhaustivos;
+// lo que falta es solo la cola de marcadores >8 goles que se trunca).
+// rho (parámetro Dixon-Coles) es opcional: si no se pasa, se usa 0 y el resultado es
+// idéntico a un Poisson normal sin corrección.
+function distribucionPoisson(xgLocal, xgVisita, rho){
+  // Se acota rho al rango donde la corrección Dixon-Coles sigue siendo válida para
+  // ESTE partido en concreto (depende de los xG de ambos equipos), en vez de truncar
+  // después probabilidades negativas.
+  rho = acotarRho(rho || 0, xgLocal, xgVisita);
+  let pLocal=0, pEmpate=0, pVisita=0;
+  for (let i=0;i<=8;i++){
+    for (let j=0;j<=8;j++){
+      let p = poissonProb(i,xgLocal) * poissonProb(j,xgVisita) * tauDC(i,j,xgLocal,xgVisita,rho);
+      if (p < 0) p = 0; // red de seguridad final (no deberia activarse tras acotar rho)
+      if (i>j) pLocal += p; else if (i===j) pEmpate += p; else pVisita += p;
+    }
+  }
+  const total = pLocal + pEmpate + pVisita;
+  if (total > 0){ pLocal /= total; pEmpate /= total; pVisita /= total; }
+  return { pLocal, pEmpate, pVisita };
+}
+
+function estimarPartido(local, visita){
+  if (!statsLigaMX) return null;
+  const claveLocal = resolverClaveEquipo(local, statsLigaMX.fuerza);
+  const claveVisita = resolverClaveEquipo(visita, statsLigaMX.fuerza);
+  if (!claveLocal || !claveVisita) return null;
+  const fl = statsLigaMX.fuerza[claveLocal], fv = statsLigaMX.fuerza[claveVisita];
+  const xgLocal = statsLigaMX.promLocal * fl.ataqueLocal * fv.defensaVisita;
+  const xgVisita = statsLigaMX.promVisita * fv.ataqueVisita * fl.defensaLocal;
+  const d = distribucionPoisson(xgLocal, xgVisita, statsLigaMX.rho);
+  const pjLocal = fl.pjTotal || 0, pjVisita = fv.pjTotal || 0;
+  return {
+    pLocal: d.pLocal, pEmpate: d.pEmpate, pVisita: d.pVisita, xgLocal, xgVisita,
+    eloLocal: statsLigaMX.elo[claveLocal]||1500, eloVisita: statsLigaMX.elo[claveVisita]||1500,
+    pjLocal, pjVisita,
+    confiable: pjLocal >= MIN_PARTIDOS_CONFIABLE && pjVisita >= MIN_PARTIDOS_CONFIABLE,
+    nombreLocal: claveLocal, nombreVisita: claveVisita
+  };
+}
+
+// Traduce el nombre de un resultado de Polymarket ("América", "Draw", "Yes"...) a la
+// probabilidad que calculó el modelo para ese resultado específico.
+function mapearProbabilidadModelo(outcomeLabel, equipos, est, ladoMercado){
+  if (!est || equipos.length < 2) return null;
+  const texto = normalizarTexto(outcomeLabel);
+  const esYes = (texto === 'yes' || texto === 'si' || texto === 'si');
+  const esNo  = (texto === 'no');
+
+  // CASO REAL de Polymarket: mercados binarios Yes/No donde el resultado concreto
+  // ("Atlante FC", "Draw (...)", "Deportivo Toluca FC") viene en groupItemTitle.
+  // ANTES esto se resolvía asumiendo que "Yes" siempre era el equipo local — lo que
+  // autollenaba el mercado de EMPATE con la probabilidad de que ganara el local.
+  if ((esYes || esNo) && ladoMercado){
+    const lado = normalizarTexto(ladoMercado);
+    let p = null;
+    if (lado.includes('draw') || lado.includes('empat') || lado.includes('tie')) p = est.pEmpate;
+    else if (equipoCoincideConTexto(equipos[0], ladoMercado)) p = est.pLocal;
+    else if (equipoCoincideConTexto(equipos[1], ladoMercado)) p = est.pVisita;
+    if (p === null) return null;
+    return esYes ? p : (1 - p);
+  }
+
+  // Mercado de 3 vías clásico: el outcome ya es el nombre del resultado.
+  if (texto.includes('draw') || texto.includes('empat') || texto.includes('tie')) return est.pEmpate;
+  if (equipoCoincideConTexto(equipos[0], outcomeLabel)) return est.pLocal;
+  if (equipoCoincideConTexto(equipos[1], outcomeLabel)) return est.pVisita;
+  // Sin groupItemTitle no se puede saber a qué lado corresponde un Yes/No suelto:
+  // se deja en blanco en vez de adivinar.
+  return null;
+}
+
+// ---------- Utilidades compartidas ESPN (Liga MX y Champions League) ----------
+function fmtESPN(d){ return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0'); }
+
+// Convierte un evento crudo de la API de ESPN en {fecha, local, visita, golesLocal, golesVisita},
+// o null si no aplica (no terminado, sin marcador, etc.)
+function mapearEventoESPN(ev){
+  const comp = ev.competitions && ev.competitions[0];
+  if (!comp || !comp.status || !comp.status.type || !comp.status.type.completed) return null;
+  const home = (comp.competitors || []).find(c => c.homeAway === 'home');
+  const away = (comp.competitors || []).find(c => c.homeAway === 'away');
+  if (!home || !away || !home.team || !away.team) return null;
+  const golesLocal = parseInt(home.score);
+  const golesVisita = parseInt(away.score);
+  if (isNaN(golesLocal) || isNaN(golesVisita)) return null;
+  return { fecha: ev.date, local: home.team.displayName, visita: away.team.displayName, golesLocal, golesVisita };
+}
+
+// Descarga un rango de fechas de un slug de ESPN en tramos de ~30 dias (para no pedir
+// rangos demasiado anchos de una sola vez), y devuelve un Map de eventos unicos por id.
+async function descargarEventosESPN(slug, desde, hasta, cont, etiquetaProgreso){
+  const eventosPorId = new Map();
+  if (desde > hasta) return eventosPorId;
+  let cursor = new Date(desde);
+  let tramo = 1;
+  const totalTramos = Math.ceil((hasta - desde) / (30*24*60*60*1000)) + 1;
+  while (cursor <= hasta){
+    const fin = new Date(cursor);
+    fin.setDate(fin.getDate() + 29);
+    const finReal = fin > hasta ? hasta : fin;
+    if (cont) cont.innerHTML = '<p class="estado">' + etiquetaProgreso + ' (' + tramo + ' de ' + totalTramos + ')...</p>';
+    const url = 'https://site.api.espn.com/apis/site/v2/sports/soccer/' + slug + '/scoreboard?dates=' + fmtESPN(cursor) + '-' + fmtESPN(finReal);
+    try{
+      const res = await fetch(url);
+      if (res.ok){
+        const data = await res.json();
+        (data.events || []).forEach(ev => eventosPorId.set(ev.id, ev));
+      }
+    } catch(e){ /* si un tramo falla, seguimos con los demas */ }
+    cursor = new Date(finReal);
+    cursor.setDate(cursor.getDate() + 1);
+    tramo++;
+  }
+  return eventosPorId;
+}
+
+// Ajusta rho (parámetro Dixon-Coles) buscando el valor que maximiza la verosimilitud
+// de los marcadores REALES observados, dados los factores de ataque/defensa ya calculados.
+// Se busca por cuadrícula (-0.40 a +0.20) en vez de usar un valor fijo de algún paper,
+// porque cada liga tiene su propio patrón de marcadores bajos/empates (ligas distintas
+// dieron valores de rho muy distintos al probarlo con datos reales: Liga MX ~+0.08,
+// Premier League ~-0.22).
+function ajustarRho(jugados, fuerza, promLocal, promVisita){
+  let mejorRho = 0, mejorLL = -Infinity;
+  for (let r = -40; r <= 20; r += 2){
+    const rho = r / 100;
+    let ll = 0, valido = true;
+    for (let idx = 0; idx < jugados.length; idx++){
+      const p = jugados[idx];
+      const fl = fuerza[p.local], fv = fuerza[p.visita];
+      if (!fl || !fv) continue;
+      const xgLocal = promLocal * fl.ataqueLocal * fv.defensaVisita;
+      const xgVisita = promVisita * fv.ataqueVisita * fl.defensaLocal;
+      const i = Math.min(p.golesLocal, 8), j = Math.min(p.golesVisita, 8);
+      // Mismo acotado que usa distribucionPoisson, para que el rho que se elige aqui
+      // sea exactamente el que despues se aplica al calcular probabilidades.
+      const rhoValido = acotarRho(rho, xgLocal, xgVisita);
+      const prob = tauDC(i,j,xgLocal,xgVisita,rhoValido) * poissonProb(i,xgLocal) * poissonProb(j,xgVisita);
+      if (prob <= 0){ valido = false; break; }
+      ll += Math.log(prob);
+    }
+    if (valido && ll > mejorLL){ mejorLL = ll; mejorRho = rho; }
+  }
+  return mejorRho;
+}
+
+// A partir de una lista de partidos jugados, calcula Elo (K=20, ventaja local +60) y
+// los factores de ataque/defensa que usa el Poisson. Mismas formulas para cualquier liga.
+function construirStatsDesdeJugados(jugados){
+  const K = 20, VENTAJA_LOCAL = 60;
+  // Partidos "fantasma" al promedio de liga (1.0) que se le suman a cada equipo antes
+  // de promediar su ataque/defensa. Con pocos partidos jugados (equipo recién ascendido,
+  // fase de liga de Champions con solo 8 partidos, etc.) esto evita que una racha corta
+  // (ej. anotar 0 goles en su único partido de local) se traduzca en un factor extremo
+  // como 0 o infinito — lo jala hacia el promedio proporcional a cuántos partidos reales
+  // respaldan el número. Con muchos partidos (Liga MX completa, Premier League completa)
+  // el efecto es casi nulo porque n domina sobre K_SHRINK.
+  const K_SHRINK = 5;
+  const elo = {};
+  const getElo = (eq) => elo[eq] !== undefined ? elo[eq] : 1500;
+  jugados.forEach(p => {
+    const eloLocal = getElo(p.local), eloVisita = getElo(p.visita);
+    const esperadoLocal = 1 / (1 + Math.pow(10, -(eloLocal + VENTAJA_LOCAL - eloVisita)/400));
+    let resultadoLocal;
+    if (p.golesLocal > p.golesVisita) resultadoLocal = 1;
+    else if (p.golesLocal < p.golesVisita) resultadoLocal = 0;
+    else resultadoLocal = 0.5;
+    elo[p.local] = eloLocal + K * (resultadoLocal - esperadoLocal);
+    elo[p.visita] = eloVisita + K * ((1-resultadoLocal) - (1-esperadoLocal));
+  });
+
+  const acum = {};
+  const ensure = (eq) => { if (!acum[eq]) acum[eq] = {glLocal:0, pjLocal:0, gcLocal:0, glVisita:0, pjVisita:0, gcVisita:0}; return acum[eq]; };
+  let totalGolesLocal = 0, totalGolesVisita = 0;
+  jugados.forEach(p => {
+    const l = ensure(p.local), v = ensure(p.visita);
+    l.glLocal += p.golesLocal; l.gcLocal += p.golesVisita; l.pjLocal++;
+    v.glVisita += p.golesVisita; v.gcVisita += p.golesLocal; v.pjVisita++;
+    totalGolesLocal += p.golesLocal; totalGolesVisita += p.golesVisita;
+  });
+  const promLocal = totalGolesLocal / jugados.length;
+  const promVisita = totalGolesVisita / jugados.length;
+
+  // Jala un factor "crudo" hacia 1.0 (promedio de liga) proporcional a cuántos partidos
+  // reales lo respaldan: con n grande casi no se mueve, con n chico se acerca mucho a 1.0.
+  const shrink = (raw, n) => (raw * n + 1.0 * K_SHRINK) / (n + K_SHRINK);
+
+  const fuerza = {};
+  Object.keys(acum).forEach(eq => {
+    const a = acum[eq];
+    const rawAtaqueLocal = a.pjLocal ? (a.glLocal / a.pjLocal) / promLocal : 1;
+    const rawDefensaLocal = a.pjLocal ? (a.gcLocal / a.pjLocal) / promVisita : 1;
+    const rawAtaqueVisita = a.pjVisita ? (a.glVisita / a.pjVisita) / promVisita : 1;
+    const rawDefensaVisita = a.pjVisita ? (a.gcVisita / a.pjVisita) / promLocal : 1;
+    fuerza[eq] = {
+      ataqueLocal: shrink(rawAtaqueLocal, a.pjLocal),
+      defensaLocal: shrink(rawDefensaLocal, a.pjLocal),
+      ataqueVisita: shrink(rawAtaqueVisita, a.pjVisita),
+      defensaVisita: shrink(rawDefensaVisita, a.pjVisita),
+      // Cuántos partidos respaldan los factores de arriba. Con pocos partidos
+      // (equipo recién ascendido, por ejemplo) los factores son puro ruido
+      // — por eso además del shrinkage sigue existiendo el aviso de MIN_PARTIDOS_CONFIABLE.
+      pjLocal: a.pjLocal, pjVisita: a.pjVisita, pjTotal: a.pjLocal + a.pjVisita
+    };
+  });
+
+  // rho se ajusta a los datos de ESTA liga en particular — no es un valor fijo compartido
+  // entre Liga MX, Champions y Premier League, porque el patrón de marcadores bajos
+  // varía de liga a liga (verificado con datos reales en el estudio de agosto 2026).
+  const rho = ajustarRho(jugados, fuerza, promLocal, promVisita);
+
+  return { elo, fuerza, promLocal, promVisita, muestra: jugados.length, rho };
+}
+
+async function cargarHistorialLigaMXSiFalta(cont){
+  if (statsLigaMX) return true;
+  cont.innerHTML = '<p class="estado">Descargando historial de partidos (primera vez puede tardar hasta un minuto, los datos de ESPN pesan bastante)...</p>';
+  try{
+    // Cubre la temporada actual + la anterior de Liga MX (julio del año pasado a hoy).
+    const hoy = new Date();
+    const inicio = new Date(hoy.getFullYear() - 1, 6, 1);
+    const eventosPorId = await descargarEventosESPN('mex.1', inicio, hoy, cont, 'Descargando historial de partidos');
+
+    const jugados = Array.from(eventosPorId.values())
+      .map(mapearEventoESPN)
+      .filter(Boolean)
+      .sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
+
+    if (jugados.length < 20){
+      cont.innerHTML = '<p class="estado error">Solo encontre ' + jugados.length + ' partidos con marcador en total, muy pocos para confiar en el modelo todavia. Intenta de nuevo mas adelante en la temporada.</p>';
+      return false;
+    }
+
+    statsLigaMX = construirStatsDesdeJugados(jugados);
+    return true;
+  } catch(err){
+    cont.innerHTML = '<p class="estado error">No se pudo descargar el historial (' + err.message + '). Intenta de nuevo en un momento.</p>';
+    return false;
+  }
+}
+
+async function calcularPartidoSeleccionado(){
+  const cont = document.getElementById('partido-resultado');
+  const local = document.getElementById('select-local').value;
+  const visita = document.getElementById('select-visita').value;
+  if (!local || !visita){
+    cont.innerHTML = '<p class="estado error">Elige los dos equipos (local y visitante).</p>';
+    return;
+  }
+  if (local === visita){
+    cont.innerHTML = '<p class="estado error">Elige dos equipos distintos.</p>';
+    return;
+  }
+  const listo = await cargarHistorialLigaMXSiFalta(cont);
+  if (!listo) return;
+  const est = estimarPartido(local, visita);
+  if (!est){
+    cont.innerHTML = '<p class="estado error">No tengo suficiente historial de "' + local + '" o "' + visita + '" en Liga MX todavia (por ejemplo, un equipo recien ascendido o reincorporado, como Atlante este Apertura 2026). El modelo no puede calcular este partido con confianza, no lo uses para decidir todavia.</p>';
+    return;
+  }
+  const avisoMuestra = est.confiable ? '' :
+    '<div style="background:#3A2410;border:1px solid var(--amber);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.84rem;color:var(--amber);">' +
+      '<strong>&#9888; Muestra insuficiente &mdash; no confies en estos porcentajes.</strong><br>' +
+      'Partidos con datos: ' + local + ' = ' + est.pjLocal + ' &nbsp;&middot;&nbsp; ' + visita + ' = ' + est.pjVisita + ' (minimo recomendado: ' + MIN_PARTIDOS_CONFIABLE + ' por equipo).<br>' +
+      'Con tan pocos partidos los factores de ataque/defensa son ruido, no senal. Registralo en la bitacora si quieres, pero <strong>no lo uses para decidir una apuesta</strong>.' +
+    '</div>';
+  cont.innerHTML = avisoMuestra +
+    '<div class="market-card">' +
+      '<div class="market-meta mono">Elo (informativo, NO entra al calculo de probabilidad): ' + local + ' ' + Math.round(est.eloLocal) + ' &nbsp;|&nbsp; ' + visita + ' ' + Math.round(est.eloVisita) + '</div>' +
+      '<div class="market-meta mono" style="margin-bottom:10px;">xG esperado: ' + local + ' ' + est.xgLocal.toFixed(2) + ' &nbsp;|&nbsp; ' + visita + ' ' + est.xgVisita.toFixed(2) + ' &nbsp;|&nbsp; Dixon-Coles rho: ' + statsLigaMX.rho.toFixed(2) + '</div>' +
+      '<div class="outcome-row" style="border-top:none;"><div class="outcome-name" style="font-weight:700;">P(' + local + ' gana)</div><div class="outcome-price mono" style="font-size:1.05rem;">' + pct(est.pLocal) + '</div></div>' +
+      '<div class="outcome-row"><div class="outcome-name" style="font-weight:700;">P(Empate)</div><div class="outcome-price mono" style="font-size:1.05rem;">' + pct(est.pEmpate) + '</div></div>' +
+      '<div class="outcome-row"><div class="outcome-name" style="font-weight:700;">P(' + visita + ' gana)</div><div class="outcome-price mono" style="font-size:1.05rem;">' + pct(est.pVisita) + '</div></div>' +
+    '</div>' +
+    '<p class="estado">Compara estos numeros contra el mercado abajo, si la diferencia es de 10 puntos o mas, es una senal (segun tu manual de Brecha).</p>';
+
+  buscarMercadoPartidoEspecifico(local, visita, est);
+}
+
+function buscarMercadoPartidoEspecifico(local, visita, est){
+  const eqLocal = EQUIPOS_LIGA_MX.find(e => e.label === local);
+  const eqVisita = EQUIPOS_LIGA_MX.find(e => e.label === visita);
+  const aliasesLocal = (eqLocal ? eqLocal.alias.concat([eqLocal.label]) : [local]).map(normalizarTexto);
+  const aliasesVisita = (eqVisita ? eqVisita.alias.concat([eqVisita.label]) : [visita]).map(normalizarTexto);
+  buscarMercadosPolymarket(local + ' vs ' + visita, 'ligamx-resultados', 'Liga MX', {
+    filtro: (norm) => aliasesLocal.some(a => norm.includes(a)) && aliasesVisita.some(a => norm.includes(a)),
+    contexto: est ? { equipos: [local, visita], est: est } : null
+  });
+}
+
+// ---------- Champions League: fase de liga (mismas formulas, datos separados) ----------
+let statsChampions = null;
+let equiposChampionsPoblados = false;
+
+// La temporada de Champions "empieza" en septiembre. Si ya estamos en o despues de
+// septiembre, la temporada actual arranco este año; si no, arranco el año pasado.
+function anioInicioTemporadaChampions(hoy){
+  return (hoy.getMonth() >= 8) ? hoy.getFullYear() : hoy.getFullYear() - 1;
+}
+
+async function cargarHistorialChampionsSiFalta(cont){
+  if (statsChampions) return true;
+  cont.innerHTML = '<p class="estado">Descargando historial de fase de liga de Champions (primera vez puede tardar un poco)...</p>';
+  try{
+    const hoy = new Date();
+    const inicioActual = anioInicioTemporadaChampions(hoy);
+    const aniosInicio = [inicioActual - 1, inicioActual]; // temporada anterior + actual
+    const eventosPorId = new Map();
+    for (const anio of aniosInicio){
+      const desde = new Date(anio, 8, 1); // 1 de septiembre
+      const hasta = new Date(anio + 1, 0, 31); // 31 de enero (fin de fase de liga)
+      const hastaReal = hasta > hoy ? hoy : hasta;
+      if (desde > hoy) continue;
+      const parciales = await descargarEventosESPN('uefa.champions', desde, hastaReal, cont, 'Descargando fase de liga ' + anio + '-' + (anio+1));
+      parciales.forEach((ev, id) => eventosPorId.set(id, ev));
+    }
+
+    const jugados = Array.from(eventosPorId.values())
+      .map(mapearEventoESPN)
+      .filter(Boolean)
+      .sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
+
+    if (jugados.length < 20){
+      cont.innerHTML = '<p class="estado error">Solo encontre ' + jugados.length + ' partidos de fase de liga con marcador — muy pocos para confiar en el modelo todavia.</p>';
+      return false;
+    }
+
+    statsChampions = construirStatsDesdeJugados(jugados);
+    return true;
+  } catch(err){
+    cont.innerHTML = '<p class="estado error">No se pudo descargar el historial (' + err.message + '). Intenta de nuevo en un momento.</p>';
+    return false;
+  }
+}
+
+// A diferencia de Liga MX, aqui no hay una lista fija de equipos (los participantes de
+// Champions cambian cada temporada), asi que el selector se llena con lo que realmente
+// vino en los datos descargados.
+function poblarSelectsChampions(){
+  if (!statsChampions) return;
+  const nombres = Object.keys(statsChampions.elo).sort((a,b) => a.localeCompare(b));
+  const opciones = nombres.map(n => '<option value="' + n + '">' + n + '</option>').join('');
+  document.getElementById('select-champions-local').innerHTML = '<option value="">Equipo local...</option>' + opciones;
+  document.getElementById('select-champions-visita').innerHTML = '<option value="">Equipo visitante...</option>' + opciones;
+  equiposChampionsPoblados = true;
+}
+
+async function calcularPartidoChampionsSeleccionado(){
+  const cont = document.getElementById('champions-partido-resultado');
+  const local = document.getElementById('select-champions-local').value;
+  const visita = document.getElementById('select-champions-visita').value;
+  if (!local || !visita){
+    cont.innerHTML = '<p class="estado error">Elige los dos equipos (local y visitante).</p>';
+    return;
+  }
+  if (local === visita){
+    cont.innerHTML = '<p class="estado error">Elige dos equipos distintos.</p>';
+    return;
+  }
+  // Igual que Liga MX: asegurarse de que el historial ya esté descargado. Sin esto,
+  // si el usuario le daba a "Calcular" antes de que terminara la descarga, salía
+  // "no tengo historial de este equipo" cuando en realidad no había cargado nada.
+  const listoCh = await cargarHistorialChampionsSiFalta(cont);
+  if (!listoCh) return;
+  const est = estimarPartidoGenerico(statsChampions, local, visita);
+  if (!est){
+    cont.innerHTML = '<p class="estado error">No tengo suficiente historial de "' + local + '" o "' + visita + '" en fase de liga de Champions todavia.</p>';
+    return;
+  }
+  const avisoMuestra = est.confiable ? '' :
+    '<div style="background:#3A2410;border:1px solid var(--amber);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.84rem;color:var(--amber);">' +
+      '<strong>&#9888; Muestra insuficiente &mdash; no confies en estos porcentajes.</strong><br>' +
+      'Partidos con datos: ' + local + ' = ' + est.pjLocal + ' &nbsp;&middot;&nbsp; ' + visita + ' = ' + est.pjVisita + ' (minimo recomendado: ' + MIN_PARTIDOS_CONFIABLE + ' por equipo).<br>' +
+      'Con tan pocos partidos los factores de ataque/defensa son ruido, no senal. Registralo en la bitacora si quieres, pero <strong>no lo uses para decidir una apuesta</strong>.' +
+    '</div>';
+  cont.innerHTML = avisoMuestra +
+    '<div class="market-card">' +
+      '<div class="market-meta mono">Elo (informativo, NO entra al calculo de probabilidad): ' + local + ' ' + Math.round(est.eloLocal) + ' &nbsp;|&nbsp; ' + visita + ' ' + Math.round(est.eloVisita) + '</div>' +
+      '<div class="market-meta mono" style="margin-bottom:10px;">xG esperado: ' + local + ' ' + est.xgLocal.toFixed(2) + ' &nbsp;|&nbsp; ' + visita + ' ' + est.xgVisita.toFixed(2) + ' &nbsp;|&nbsp; Dixon-Coles rho: ' + statsChampions.rho.toFixed(2) + '</div>' +
+      '<div class="outcome-row" style="border-top:none;"><div class="outcome-name" style="font-weight:700;">P(' + local + ' gana)</div><div class="outcome-price mono" style="font-size:1.05rem;">' + pct(est.pLocal) + '</div></div>' +
+      '<div class="outcome-row"><div class="outcome-name" style="font-weight:700;">P(Empate)</div><div class="outcome-price mono" style="font-size:1.05rem;">' + pct(est.pEmpate) + '</div></div>' +
+      '<div class="outcome-row"><div class="outcome-name" style="font-weight:700;">P(' + visita + ' gana)</div><div class="outcome-price mono" style="font-size:1.05rem;">' + pct(est.pVisita) + '</div></div>' +
+    '</div>' +
+    '<p class="estado">Recuerda: esto solo es valido si el partido es de fase de liga, no de eliminacion directa. Compara contra el mercado abajo.</p>';
+
+  // Categoria "Champions League" (no "Champions"): tiene que coincidir EXACTO con la
+  // etiqueta de la hoja Resumen de bitacora_validacion.xlsx o los COUNTIF no la cuentan.
+  buscarMercadosPolymarket(local + ' vs ' + visita, 'champions-resultados', 'Champions League', {
+    filtro: (norm) => norm.includes(normalizarTexto(local)) && norm.includes(normalizarTexto(visita)),
+    contexto: { equipos: [local, visita], est: est }
+  });
+}
+
+// Version generica de estimarPartido que recibe el objeto de stats como parametro,
+// para poder usarse con Liga MX o con Champions sin duplicar la logica de Poisson.
+function estimarPartidoGenerico(stats, local, visita){
+  if (!stats) return null;
+  const fl = stats.fuerza[local], fv = stats.fuerza[visita];
+  if (!fl || !fv) return null;
+  const xgLocal = stats.promLocal * fl.ataqueLocal * fv.defensaVisita;
+  const xgVisita = stats.promVisita * fv.ataqueVisita * fl.defensaLocal;
+  const d = distribucionPoisson(xgLocal, xgVisita, stats.rho);
+  const pjLocal = fl.pjTotal || 0, pjVisita = fv.pjTotal || 0;
+  return {
+    pLocal: d.pLocal, pEmpate: d.pEmpate, pVisita: d.pVisita, xgLocal, xgVisita,
+    eloLocal: stats.elo[local]||1500, eloVisita: stats.elo[visita]||1500,
+    pjLocal, pjVisita,
+    confiable: pjLocal >= MIN_PARTIDOS_CONFIABLE && pjVisita >= MIN_PARTIDOS_CONFIABLE,
+    nombreLocal: local, nombreVisita: visita
+  };
+}
+
+// ---------- Premier League: mismo modelo, temporada completa (no fase de grupos) ----------
+let statsPremier = null;
+let equiposPremierPoblados = false;
+
+async function cargarHistorialPremierSiFalta(cont){
+  if (statsPremier) return true;
+  cont.innerHTML = '<p class="estado">Descargando historial de Premier League (primera vez puede tardar hasta un minuto)...</p>';
+  try{
+    // Cubre la temporada actual + la anterior (agosto del año pasado a hoy), igual que Liga MX.
+    const hoy = new Date();
+    const inicio = new Date(hoy.getFullYear() - 1, 6, 1);
+    const eventosPorId = await descargarEventosESPN('eng.1', inicio, hoy, cont, 'Descargando historial de Premier League');
+
+    const jugados = Array.from(eventosPorId.values())
+      .map(mapearEventoESPN)
+      .filter(Boolean)
+      .sort((a,b) => new Date(a.fecha) - new Date(b.fecha));
+
+    if (jugados.length < 20){
+      cont.innerHTML = '<p class="estado error">Solo encontre ' + jugados.length + ' partidos con marcador en total, muy pocos para confiar en el modelo todavia. Intenta de nuevo mas adelante en la temporada.</p>';
+      return false;
+    }
+
+    statsPremier = construirStatsDesdeJugados(jugados);
+    return true;
+  } catch(err){
+    cont.innerHTML = '<p class="estado error">No se pudo descargar el historial (' + err.message + '). Intenta de nuevo en un momento.</p>';
+    return false;
+  }
+}
+
+// Igual que Champions: no hay lista fija de equipos (ascensos/descensos cada temporada),
+// el selector se llena con lo que realmente vino en los datos descargados.
+function poblarSelectsPremier(){
+  if (!statsPremier) return;
+  const nombres = Object.keys(statsPremier.elo).sort((a,b) => a.localeCompare(b));
+  const opciones = nombres.map(n => '<option value="' + n + '">' + n + '</option>').join('');
+  document.getElementById('select-premier-local').innerHTML = '<option value="">Equipo local...</option>' + opciones;
+  document.getElementById('select-premier-visita').innerHTML = '<option value="">Equipo visitante...</option>' + opciones;
+  equiposPremierPoblados = true;
+}
+
+async function calcularPartidoPremierSeleccionado(){
+  const cont = document.getElementById('premier-partido-resultado');
+  const local = document.getElementById('select-premier-local').value;
+  const visita = document.getElementById('select-premier-visita').value;
+  if (!local || !visita){
+    cont.innerHTML = '<p class="estado error">Elige los dos equipos (local y visitante).</p>';
+    return;
+  }
+  if (local === visita){
+    cont.innerHTML = '<p class="estado error">Elige dos equipos distintos.</p>';
+    return;
+  }
+  const listoPr = await cargarHistorialPremierSiFalta(cont);
+  if (!listoPr) return;
+  const est = estimarPartidoGenerico(statsPremier, local, visita);
+  if (!est){
+    cont.innerHTML = '<p class="estado error">No tengo suficiente historial de "' + local + '" o "' + visita + '" en Premier League todavia.</p>';
+    return;
+  }
+  const avisoMuestra = est.confiable ? '' :
+    '<div style="background:#3A2410;border:1px solid var(--amber);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.84rem;color:var(--amber);">' +
+      '<strong>&#9888; Muestra insuficiente &mdash; no confies en estos porcentajes.</strong><br>' +
+      'Partidos con datos: ' + local + ' = ' + est.pjLocal + ' &nbsp;&middot;&nbsp; ' + visita + ' = ' + est.pjVisita + ' (minimo recomendado: ' + MIN_PARTIDOS_CONFIABLE + ' por equipo).<br>' +
+      'Con tan pocos partidos los factores de ataque/defensa son ruido, no senal. Registralo en la bitacora si quieres, pero <strong>no lo uses para decidir una apuesta</strong>.' +
+    '</div>';
+  cont.innerHTML = avisoMuestra +
+    '<div class="market-card">' +
+      '<div class="market-meta mono">Elo (informativo, NO entra al calculo de probabilidad): ' + local + ' ' + Math.round(est.eloLocal) + ' &nbsp;|&nbsp; ' + visita + ' ' + Math.round(est.eloVisita) + '</div>' +
+      '<div class="market-meta mono" style="margin-bottom:10px;">xG esperado: ' + local + ' ' + est.xgLocal.toFixed(2) + ' &nbsp;|&nbsp; ' + visita + ' ' + est.xgVisita.toFixed(2) + ' &nbsp;|&nbsp; Dixon-Coles rho: ' + statsPremier.rho.toFixed(2) + '</div>' +
+      '<div class="outcome-row" style="border-top:none;"><div class="outcome-name" style="font-weight:700;">P(' + local + ' gana)</div><div class="outcome-price mono" style="font-size:1.05rem;">' + pct(est.pLocal) + '</div></div>' +
+      '<div class="outcome-row"><div class="outcome-name" style="font-weight:700;">P(Empate)</div><div class="outcome-price mono" style="font-size:1.05rem;">' + pct(est.pEmpate) + '</div></div>' +
+      '<div class="outcome-row"><div class="outcome-name" style="font-weight:700;">P(' + visita + ' gana)</div><div class="outcome-price mono" style="font-size:1.05rem;">' + pct(est.pVisita) + '</div></div>' +
+    '</div>' +
+    '<p class="estado">Compara estos numeros contra el mercado abajo. Recuerda: en el estudio la ventaja encontrada en Premier League fue pequeña — no la trates como garantizada.</p>';
+
+  // Categoria "Premier League": tiene que coincidir EXACTO con la etiqueta de la hoja
+  // Resumen de bitacora_validacion.xlsx o los COUNTIF/AVERAGEIF no la cuentan.
+  buscarMercadosPolymarket(local + ' vs ' + visita, 'premier-resultados', 'Premier League', {
+    filtro: (norm) => norm.includes(normalizarTexto(local)) && norm.includes(normalizarTexto(visita)),
+    contexto: { equipos: [local, visita], est: est }
+  });
+}
+
+// ---------- Bitácora ----------
+let bitacora = [];
+
+function agregarBitacora(entry){
+  bitacora.push(entry);
+  renderBitacora();
+}
+
+function renderBitacora(){
+  const tbody = document.getElementById('bitacora-body');
+  const vacio = document.getElementById('bitacora-vacio');
+  const tabla = document.getElementById('tabla-bitacora');
+  document.getElementById('contador-bitacora').textContent = bitacora.length;
+  if (bitacora.length === 0){
+    tbody.innerHTML = '';
+    vacio.style.display = 'block';
+    tabla.style.display = 'none';
+    return;
+  }
+  vacio.style.display = 'none';
+  tabla.style.display = 'table';
+  tbody.innerHTML = bitacora.map((e, i) =>
+    '<tr>' +
+      '<td class="mono">' + new Date(e.fecha).toLocaleString('es-MX') + '</td>' +
+      '<td>' + e.categoria + '</td>' +
+      '<td>' + e.mercado + '</td>' +
+      '<td>' + e.resultado + '</td>' +
+      '<td class="mono">' + e.precioMercado + '%</td>' +
+      '<td class="mono">' + e.tuProbabilidad + '%</td>' +
+      '<td class="mono">' + e.brecha + '</td>' +
+      '<td><button class="btn-eliminar" onclick="eliminarBitacora(' + i + ')">✕</button></td>' +
+    '</tr>'
+  ).join('');
+}
+
+function eliminarBitacora(i){
+  bitacora.splice(i, 1);
+  renderBitacora();
+}
+
+function exportarCSV(){
+  if (bitacora.length === 0){ alert('Tu bitácora está vacía.'); return; }
+  const headers = ['fecha','categoria','mercado','resultado','precioMercado','tuProbabilidad','brecha'];
+  const rows = bitacora.map(e => headers.map(h => '"' + String(e[h]).replace(/"/g,'""') + '"').join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'brecha-bitacora-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Exporta en las columnas EXACTAS de bitacora_validacion.xlsx (A a P, confirmadas leyendo
+// la fila de encabezados real del archivo, no la versión resumida del manual). Sin fila de
+// títulos a propósito: la idea es pegar esto directo sobre una fila VACÍA existente de la
+// hoja "Bitacora" empezando en la columna A — así las fórmulas que ya viven en esa fila
+// (Brecha, Señal, Score de Confianza, etc.) calculan solas, sin que retipees nada.
+function exportarParaBitacora(){
+  if (bitacora.length === 0){ alert('Tu bitácora está vacía. Da clic en "+ Bitácora" en algún resultado primero.'); return; }
+  const filas = bitacora.map(e => {
+    const fechaCorta = e.fecha ? new Date(e.fecha).toISOString().slice(0,10) : '';
+    const mercadoCompleto = (e.mercado || '') + (e.resultado ? (' — ' + e.resultado) : '');
+    return [
+      fechaCorta,                          // A Fecha
+      e.categoria || '',                   // B Categoria
+      mercadoCompleto,                     // C Partido o Mercado
+      '',                                  // D Resultado que Evaluas (se llena cuando se resuelva)
+      e.precioMercado || '',               // E Precio del Mercado (%)
+      e.tuProbabilidad || '',              // F Tu Probabilidad (%)
+      e.volumen !== undefined ? e.volumen : '', // G Volumen del Mercado (USD)
+      '',                                  // H Monto Simulado (USD) — decide tú
+      '',                                  // I Precio Real de Entrada (%)
+      '',                                  // J Spread (¢)
+      'NO',                                // K ¿Ya se Jugo?
+      '',                                  // L ¿Paso lo que Dijiste?
+      '',                                  // M ¿Otra Apuesta Abierta esta Semana?
+      '',                                  // N ¿Tienes 1-2% de Bankroll Disponible?
+      e.codigo || '',                      // O Codigo del Partido
+      'Auto desde Brecha el ' + new Date().toLocaleDateString('es-MX') // P Notas
+    ];
+  });
+  const csv = filas.map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'brecha-para-bitacora-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importarCSV(file){
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    const lines = text.split('\n').filter(l => l.trim());
+    const headers = lines[0].split(',').map(h => h.replace(/"/g,''));
+    const nuevas = lines.slice(1).map(line => {
+      const vals = (line.match(/(".*?"|[^,]+)/g) || []).map(v => v.replace(/^"|"$/g,'').replace(/""/g,'"'));
+      const obj = {};
+      headers.forEach((h,i) => obj[h] = vals[i]);
+      return obj;
+    });
+    bitacora = bitacora.concat(nuevas);
+    renderBitacora();
+  };
+  reader.readAsText(file);
+}
+
+// ---------- Chips ----------
+document.querySelectorAll('#chips-inflacion .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.getElementById('input-kw-inflacion').value = chip.dataset.kw;
+    buscarMercadosPolymarket(chip.dataset.kw, 'inflacion-resultados', 'Inflación');
+  });
+});
+// ---------- Inicio ----------
+window.addEventListener('DOMContentLoaded', () => {
+  poblarSelectsLigaMX();
+  buscarMercadosPolymarket('inflation', 'inflacion-resultados', 'Inflación');
+  renderBitacora();
+});
+</script>
+</body>
+</html>
